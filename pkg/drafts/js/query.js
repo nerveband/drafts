@@ -1,4 +1,6 @@
-let ds = Draft.query(...input);
+let [queryString, filter, tags, omitTags, sort, sortDescending, sortFlaggedToTop] = input;
+let ds = Draft.query(queryString, filter, tags || [], omitTags || [], sort, sortDescending, sortFlaggedToTop);
+if (!ds) ds = [];
 let res = ds.map((d) => ({
   uuid: d.uuid,
   content: d.content,

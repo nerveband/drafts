@@ -33,10 +33,11 @@ Commands:
   new                    create new draft
   prepend                prepend to draft
   append                 append to draft
-  replace                append to draft
+  replace                replace content of draft
   edit                   edit draft in $EDITOR
   get                    get content of draft
   select                 select active draft using fzf
+  list                   list drafts
 ```
 
 See further: `drafts <command> --help`

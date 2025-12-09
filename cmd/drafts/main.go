@@ -109,6 +109,43 @@ func _select() string {
 	return drafts.Get(uuid).Content
 }
 
+type ListCmd struct {
+	Filter string   `arg:"-f" default:"inbox" help:"filter: inbox|flagged|archive|trash|all"`
+	Tag    []string `arg:"-t,separate" help:"filter by tag"`
+}
+
+func parseFilter(s string) drafts.Filter {
+	switch s {
+	case "inbox":
+		return drafts.FilterInbox
+	case "flagged":
+		return drafts.FilterFlagged
+	case "archive":
+		return drafts.FilterArchive
+	case "trash":
+		return drafts.FilterTrash
+	case "all":
+		return drafts.FilterAll
+	default:
+		return drafts.FilterInbox
+	}
+}
+
+func list(param *ListCmd) string {
+	filter := parseFilter(param.Filter)
+	ds := drafts.Query("", filter, drafts.QueryOptions{Tags: param.Tag})
+	var b strings.Builder
+	linebreakRegex := regexp.MustCompile(`\n+`)
+	for _, d := range ds {
+		firstLine := linebreakRegex.Split(d.Content, 2)[0]
+		if len(firstLine) > 80 {
+			firstLine = firstLine[:77] + "..."
+		}
+		fmt.Fprintf(&b, "%s\t%s\n", d.UUID, firstLine)
+	}
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
 // ---- Main -------------------------------------------------------------------
 
 func main() {
@@ -116,10 +153,11 @@ func main() {
 		New     *NewCmd     `arg:"subcommand:new" help:"create new draft"`
 		Prepend *PrependCmd `arg:"subcommand:prepend" help:"prepend to draft"`
 		Append  *AppendCmd  `arg:"subcommand:append" help:"append to draft"`
-		Replace *ReplaceCmd `arg:"subcommand:replace" help:"append to draft"`
+		Replace *ReplaceCmd `arg:"subcommand:replace" help:"replace content of draft"`
 		Edit    *EditCmd    `arg:"subcommand:edit" help:"edit draft in $EDITOR"`
 		Get     *GetCmd     `arg:"subcommand:get" help:"get content of draft"`
 		Select  *SelectCmd  `arg:"subcommand:select" help:"select active draft using fzf"`
+		List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
 	}
 	p := arg.MustParse(&args)
 	if p.Subcommand() == nil {
@@ -140,5 +178,7 @@ func main() {
 		fmt.Println(get(args.Get))
 	case args.Select != nil:
 		fmt.Println(_select())
+	case args.List != nil:
+		fmt.Println(list(args.List))
 	}
 }
