@@ -1,22 +1,69 @@
 # Drafts CLI
 
-Command line interface for [Drafts](https://getdrafts.com). Requires Drafts Pro and macOS.
+Command line interface for [Drafts](https://getdrafts.com) on macOS.
+
+## Requirements
+
+> **IMPORTANT: This CLI only works on macOS with Drafts running.**
+
+| Requirement | Details |
+|-------------|---------|
+| **Operating System** | macOS only (uses AppleScript) |
+| **Drafts App** | Must be installed AND running |
+| **Drafts Pro** | Required for automation features |
+| **Go** | 1.21+ (for installation) |
+
+**This CLI will NOT work if:**
+- You're on Linux or Windows
+- Drafts app is not installed
+- Drafts app is not running (it must be open)
+- You don't have Drafts Pro subscription
+
+## How It Works
+
+The CLI communicates with Drafts via AppleScript (`osascript`). This means:
+- Drafts must be running on your Mac for any command to work
+- Commands execute in the context of the running Drafts app
+- All data stays local on your Mac
 
 ## Install
+
+### Option 1: Go Install
 
 ```bash
 go install github.com/nerveband/drafts/cmd/drafts@latest
 ```
 
-Or build from source:
+### Option 2: Build from Source
 
 ```bash
 git clone https://github.com/nerveband/drafts
 cd drafts
 go build ./cmd/drafts
+
+# Optionally move to PATH
+mv drafts /usr/local/bin/
 ```
 
-**No additional dependencies required!** The CLI communicates directly with Drafts via AppleScript.
+### Option 3: Download Binary
+
+Download from [Releases](https://github.com/nerveband/drafts/releases) (macOS only).
+
+## Quick Start
+
+```bash
+# Make sure Drafts is running first!
+open -a Drafts
+
+# Create a draft
+drafts create "Hello from the CLI"
+
+# List your drafts
+drafts list
+
+# Get a specific draft
+drafts get <uuid>
+```
 
 ## Usage
 
@@ -57,6 +104,13 @@ Options:
   --action ACTION      Run action after creation
 ```
 
+**Examples:**
+```bash
+drafts create "Meeting notes"
+drafts create "Shopping list" -t groceries -t todo
+drafts create "Important!" -f
+```
+
 ### get
 
 Get a draft by UUID.
@@ -77,6 +131,13 @@ Options:
   -t, --tag TAG        Filter by tag (can be used multiple times)
 ```
 
+**Examples:**
+```bash
+drafts list                    # List inbox
+drafts list -f archive         # List archived
+drafts list -t work            # Filter by tag
+```
+
 ### prepend / append
 
 Add content to an existing draft.
@@ -93,7 +154,7 @@ Options:
 
 ### replace
 
-Replace content of a draft.
+Replace entire content of a draft.
 
 ```bash
 drafts replace "New content" -u UUID
@@ -128,8 +189,17 @@ drafts schema create   # Schema for specific command
 ## Output Formats
 
 **JSON (default)** - Structured output for programmatic use:
-```bash
-drafts list
+```json
+{
+  "success": true,
+  "data": {
+    "uuid": "ABC-123",
+    "content": "Note content",
+    "title": "Note title",
+    "tags": ["tag1"],
+    "folder": "inbox"
+  }
+}
 ```
 
 **Plain text** - Human-readable output:
@@ -139,38 +209,48 @@ drafts list --plain
 
 ## LLM Integration
 
-This CLI is designed for LLM tool use. Features:
+This CLI is designed for LLM tool use:
 
 - **JSON output by default** - Easy to parse
 - **Structured errors** - Error code, message, and recovery hints
 - **Tool-use schema** - Get schema with `drafts schema`
 - **Full metadata** - All draft properties returned
 
-### Example LLM Workflow
+### ClawdBot Skill
 
+A ClawdBot skill is available for this CLI. Install to `~/.clawdbot/skills/drafts/SKILL.md`.
+
+## Troubleshooting
+
+### "AppleScript error" or no response
+
+1. **Is Drafts running?** The app must be open: `open -a Drafts`
+2. **Is Drafts Pro active?** Automation requires Pro subscription
+3. **Permissions granted?** Go to System Settings > Privacy & Security > Automation and ensure Terminal (or your app) can control Drafts
+
+### "command not found: drafts"
+
+Add to your PATH:
 ```bash
-# 1. Get available commands schema
-drafts schema
-
-# 2. Create a draft
-drafts create "Meeting notes for project X"
-
-# 3. List recent drafts
-drafts list
-
-# 4. Get specific draft
-drafts get <uuid>
+export PATH="$PATH:$(go env GOPATH)/bin"
 ```
 
-## Implementation
+### Commands hang or timeout
 
-The CLI communicates directly with Drafts via AppleScript (`osascript`).
+Drafts may be showing a dialog. Check the Drafts app window.
 
-**Architecture:**
-- No helper apps required
+## Architecture
+
+```
+┌─────────────┐      AppleScript      ┌─────────────┐
+│  drafts CLI │ ──────────────────▶   │  Drafts.app │
+└─────────────┘      (osascript)      └─────────────┘
+```
+
+- No network requests
+- No helper apps
 - No Drafts actions to install
-- Pure AppleScript communication
-- Works on any Mac with Drafts Pro
+- Pure local AppleScript communication
 
 ## Development
 
@@ -183,3 +263,7 @@ go vet ./...             # Lint
 ## License
 
 MIT
+
+## Credits
+
+Forked from [ernstwi/drafts](https://github.com/ernstwi/drafts). Refactored to use AppleScript backend (no helper app required).
