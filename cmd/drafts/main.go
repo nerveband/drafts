@@ -150,6 +150,7 @@ func list(param *ListCmd) string {
 
 func main() {
 	var args struct {
+		Plain   bool        `arg:"--plain" help:"output plain text instead of JSON"`
 		New     *NewCmd     `arg:"subcommand:new" help:"create new draft"`
 		Prepend *PrependCmd `arg:"subcommand:prepend" help:"prepend to draft"`
 		Append  *AppendCmd  `arg:"subcommand:append" help:"append to draft"`
@@ -160,25 +161,29 @@ func main() {
 		List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
 	}
 	p := arg.MustParse(&args)
+
+	// Set global plain output flag
+	plainOutput = args.Plain
+
 	if p.Subcommand() == nil {
 		p.Fail("missing subcommand")
 	}
 	switch {
 	case args.New != nil:
-		fmt.Println(new(args.New))
+		output(new(args.New))
 	case args.Prepend != nil:
-		fmt.Println(prepend(args.Prepend))
+		output(prepend(args.Prepend))
 	case args.Append != nil:
-		fmt.Println(append(args.Append))
+		output(append(args.Append))
 	case args.Replace != nil:
-		fmt.Println(replace(args.Replace))
+		output(replace(args.Replace))
 	case args.Edit != nil:
-		fmt.Println(edit(args.Edit))
+		output(edit(args.Edit))
 	case args.Get != nil:
-		fmt.Println(get(args.Get))
+		output(get(args.Get))
 	case args.Select != nil:
-		fmt.Println(_select())
+		output(_select())
 	case args.List != nil:
-		fmt.Println(list(args.List))
+		output(list(args.List))
 	}
 }
