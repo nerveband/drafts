@@ -41,58 +41,145 @@ Commands:
   schema               output tool-use schema for LLM integration
 ```
 
-See further: `drafts <command> --help`
+## Commands
+
+### create / new
+
+Create a new draft.
+
+```bash
+drafts create "Content here" [options]
+
+Options:
+  -t, --tag TAG        Add tag (can be used multiple times)
+  -a, --archive        Create in archive folder
+  -f, --flagged        Create as flagged
+  --action ACTION      Run action after creation
+```
+
+### get
+
+Get a draft by UUID.
+
+```bash
+drafts get [UUID]      # Omit UUID to get active draft
+```
+
+### list
+
+List drafts with optional filtering.
+
+```bash
+drafts list [options]
+
+Options:
+  -f, --filter FILTER  Filter: inbox|archive|trash|all (default: inbox)
+  -t, --tag TAG        Filter by tag (can be used multiple times)
+```
+
+### prepend / append
+
+Add content to an existing draft.
+
+```bash
+drafts prepend "Text" -u UUID [options]
+drafts append "Text" -u UUID [options]
+
+Options:
+  -u, --uuid UUID      Target draft UUID (omit to use active draft)
+  -t, --tag TAG        Add tag
+  --action ACTION      Run action after modification
+```
+
+### replace
+
+Replace content of a draft.
+
+```bash
+drafts replace "New content" -u UUID
+```
+
+### edit
+
+Open draft in your $EDITOR.
+
+```bash
+drafts edit [UUID]     # Omit UUID to edit active draft
+```
+
+### run
+
+Run a Drafts action.
+
+```bash
+drafts run "Action Name" "Text to process"
+drafts run "Action Name" -u UUID    # Run on existing draft
+```
+
+### schema
+
+Output tool-use schema for LLM integration.
+
+```bash
+drafts schema          # Full schema
+drafts schema create   # Schema for specific command
+```
+
+## Output Formats
+
+**JSON (default)** - Structured output for programmatic use:
+```bash
+drafts list
+```
+
+**Plain text** - Human-readable output:
+```bash
+drafts list --plain
+```
 
 ## LLM Integration
 
-This CLI is designed for LLM tool use. Get the schema:
+This CLI is designed for LLM tool use. Features:
+
+- **JSON output by default** - Easy to parse
+- **Structured errors** - Error code, message, and recovery hints
+- **Tool-use schema** - Get schema with `drafts schema`
+- **Full metadata** - All draft properties returned
+
+### Example LLM Workflow
 
 ```bash
+# 1. Get available commands schema
 drafts schema
-```
 
-Output is JSON by default for easy parsing. Use `--plain` for human-readable output.
+# 2. Create a draft
+drafts create "Meeting notes for project X"
 
-### Example: Create a draft
-
-```bash
-# JSON output (default)
-drafts create "My new draft" -t tag1 -t tag2
-
-# Plain text output
-drafts create "My new draft" --plain
-```
-
-### Example: List drafts
-
-```bash
-# List inbox drafts
+# 3. List recent drafts
 drafts list
 
-# List archived drafts
-drafts list -f archive
-
-# List drafts with specific tag
-drafts list -t mytag
-```
-
-### Example: Run an action
-
-```bash
-# Run action on text
-drafts run "Copy" "Text to copy"
-
-# Run action on existing draft
-drafts run "Copy" -u <uuid>
+# 4. Get specific draft
+drafts get <uuid>
 ```
 
 ## Implementation
 
-The CLI communicates directly with Drafts via AppleScript (`osascript`). No helper apps or Drafts actions required.
+The CLI communicates directly with Drafts via AppleScript (`osascript`).
+
+**Architecture:**
+- No helper apps required
+- No Drafts actions to install
+- Pure AppleScript communication
+- Works on any Mac with Drafts Pro
 
 ## Development
 
 ```bash
 go build ./cmd/drafts    # Build
-go test ./...            # Test
+go test ./...            # Run tests
+go vet ./...             # Lint
 ```
+
+## License
+
+MIT
