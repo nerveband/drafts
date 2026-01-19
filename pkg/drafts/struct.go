@@ -3,12 +3,17 @@ package drafts
 const Separator = '|'
 
 type Draft struct {
-	UUID       string
-	Content    string
-	IsFlagged  bool
-	IsArchived bool
-	IsTrashed  bool
-	Tags       []string
+	UUID       string   `json:"uuid"`
+	Content    string   `json:"content"`
+	Title      string   `json:"title"`
+	Tags       []string `json:"tags"`
+	IsFlagged  bool     `json:"isFlagged"`
+	IsArchived bool     `json:"isArchived"`
+	IsTrashed  bool     `json:"isTrashed"`
+	Folder     string   `json:"folder"`
+	CreatedAt  string   `json:"createdAt"`
+	ModifiedAt string   `json:"modifiedAt"`
+	Permalink  string   `json:"permalink"`
 }
 
 // ---- Enums ------------------------------------------------------------------
