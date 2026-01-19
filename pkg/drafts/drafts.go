@@ -1,7 +1,6 @@
 package drafts
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -32,7 +31,6 @@ end tell`, escapeForAppleScript(text), flaggedStr, tagsToAppleScript(opt.Tags), 
 		return ""
 	}
 
-	// Run action if specified
 	if opt.Action != "" {
 		RunActionOnDraft(opt.Action, uuid)
 	}
@@ -41,57 +39,88 @@ end tell`, escapeForAppleScript(text), flaggedStr, tagsToAppleScript(opt.Tags), 
 }
 
 // Prepend to an existing draft.
-// https://docs.getdrafts.com/docs/automation/urlschemes#prepend
 func Prepend(uuid, text string, opt ModifyOptions) {
-	v := url.Values{
-		"uuid": []string{uuid},
-		"text": []string{text},
-	}
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set content of d to "%s" & linefeed & (content of d)
+end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
+
+	runAppleScript(script)
+
 	if len(opt.Tags) > 0 {
-		v["tag"] = opt.Tags
+		Tag(uuid, opt.Tags...)
 	}
 	if opt.Action != "" {
-		v["action"] = []string{opt.Action}
+		RunActionOnDraft(opt.Action, uuid)
 	}
-	open("prepend", v)
 }
 
 // Append to an existing draft.
-// https://docs.getdrafts.com/docs/automation/urlschemes#prepend
 func Append(uuid, text string, opt ModifyOptions) {
-	v := url.Values{
-		"uuid": []string{uuid},
-		"text": []string{text},
-	}
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set content of d to (content of d) & linefeed & "%s"
+end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
+
+	runAppleScript(script)
+
 	if len(opt.Tags) > 0 {
-		v["tag"] = opt.Tags
+		Tag(uuid, opt.Tags...)
 	}
 	if opt.Action != "" {
-		v["action"] = []string{opt.Action}
+		RunActionOnDraft(opt.Action, uuid)
 	}
-	open("append", v)
 }
 
 // Replace content of an existing draft.
 func Replace(uuid, text string) {
-	// replaceRange URL requires a range, so using JS is simpler
-	JS(replacejs, uuid, text)
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set content of d to "%s"
+end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
+
+	runAppleScript(script)
 }
 
 // Trash a draft.
 func Trash(uuid string) {
-	JS(trashjs, uuid)
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set isTrashed of d to true
+end tell`, escapeForAppleScript(uuid))
+
+	runAppleScript(script)
 }
 
 // Archive a draft.
 func Archive(uuid string) {
-	JS(archivejs, uuid)
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set isArchived of d to true
+end tell`, escapeForAppleScript(uuid))
+
+	runAppleScript(script)
 }
 
+// Tag adds tags to a draft.
 func Tag(uuid string, tags ...string) {
-	if len(tags) > 0 {
-		JS(tagjs, uuid, tags)
+	if len(tags) == 0 {
+		return
 	}
+
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set existingTags to tags of d
+	set newTags to %s
+	repeat with t in newTags
+		if t is not in existingTags then
+			set end of existingTags to t
+		end if
+	end repeat
+	set tags of d to existingTags
+end tell`, escapeForAppleScript(uuid), tagsToAppleScript(tags))
+
+	runAppleScript(script)
 }
 
 // ---- Reading drafts ---------------------------------------------------------
@@ -153,62 +182,176 @@ func parseDraftFromAppleScript(output string) Draft {
 }
 
 // Query for drafts.
-// https://scripting.getdrafts.com/classes/Draft#query
 func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
-	args := []any{
-		queryString,
-		filter.String(),
-		opt.Tags,
-		opt.OmitTags,
-		opt.Sort.String(),
-		opt.SortDescending,
-		opt.SortFlaggedToTop,
+	filterClause := "inbox"
+	if filter == FilterArchive {
+		filterClause = "archive"
+	} else if filter == FilterTrash {
+		filterClause = "trash"
+	} else if filter == FilterAll {
+		filterClause = "all"
 	}
-	js := JS(queryjs, args...)
-	var ds []Draft
-	json.Unmarshal([]byte(js), &ds)
-	return ds
+
+	// For "all", we need to get from all folders
+	var script string
+	if filterClause == "all" {
+		script = `tell application "Drafts"
+	set output to ""
+	set allDrafts to every draft
+	repeat with d in allDrafts
+		set folder_name to "inbox"
+		if isTrashed of d then
+			set folder_name to "trash"
+		else if isArchived of d then
+			set folder_name to "archive"
+		end if
+		set tag_list to tags of d
+		set tag_str to ""
+		repeat with t in tag_list
+			if tag_str is not "" then
+				set tag_str to tag_str & "|||"
+			end if
+			set tag_str to tag_str & t
+		end repeat
+		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & (isArchived of d) & "	" & (isTrashed of d) & "	" & tag_str & "	" & ((createdAt of d) as string) & "	" & ((modifiedAt of d) as string) & "	" & (permalink of d)
+		if output is "" then
+			set output to line_out
+		else
+			set output to output & linefeed & line_out
+		end if
+	end repeat
+	return output
+end tell`
+	} else {
+		script = fmt.Sprintf(`tell application "Drafts"
+	set output to ""
+	set allDrafts to every draft whose isArchived is %t and isTrashed is %t
+	repeat with d in allDrafts
+		set folder_name to "%s"
+		set tag_list to tags of d
+		set tag_str to ""
+		repeat with t in tag_list
+			if tag_str is not "" then
+				set tag_str to tag_str & "|||"
+			end if
+			set tag_str to tag_str & t
+		end repeat
+		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & (isArchived of d) & "	" & (isTrashed of d) & "	" & tag_str & "	" & ((createdAt of d) as string) & "	" & ((modifiedAt of d) as string) & "	" & (permalink of d)
+		if output is "" then
+			set output to line_out
+		else
+			set output to output & linefeed & line_out
+		end if
+	end repeat
+	return output
+end tell`,
+			filterClause == "archive",
+			filterClause == "trash",
+			filterClause)
+	}
+
+	output, err := runAppleScript(script)
+	if err != nil {
+		return []Draft{}
+	}
+
+	if output == "" {
+		return []Draft{}
+	}
+
+	lines := strings.Split(output, "\n")
+	drafts := make([]Draft, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			d := parseDraftFromAppleScript(line)
+			if d.UUID != "" {
+				if len(opt.Tags) > 0 && !hasAllTags(d.Tags, opt.Tags) {
+					continue
+				}
+				if len(opt.OmitTags) > 0 && hasAnyTag(d.Tags, opt.OmitTags) {
+					continue
+				}
+				drafts = append(drafts, d)
+			}
+		}
+	}
+
+	return drafts
+}
+
+func hasAllTags(draftTags, requiredTags []string) bool {
+	tagSet := make(map[string]bool)
+	for _, t := range draftTags {
+		tagSet[t] = true
+	}
+	for _, t := range requiredTags {
+		if !tagSet[t] {
+			return false
+		}
+	}
+	return true
+}
+
+func hasAnyTag(draftTags, excludeTags []string) bool {
+	tagSet := make(map[string]bool)
+	for _, t := range draftTags {
+		tagSet[t] = true
+	}
+	for _, t := range excludeTags {
+		if tagSet[t] {
+			return true
+		}
+	}
+	return false
 }
 
 // ---- App state --------------------------------------------------------------
 
-// Set active draft.
+// Select sets the active draft.
 func Select(uuid string) {
-	JS(loadjs, uuid)
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	open d
+end tell`, escapeForAppleScript(uuid))
+
+	runAppleScript(script)
 }
 
-// Get UUID of active draft.
+// Active returns the UUID of the active draft.
 func Active() string {
-	res := open("getCurrentDraft", url.Values{})
-	return res.Get("uuid")
+	script := `tell application "Drafts"
+	return id of current draft
+end tell`
+
+	uuid, err := runAppleScript(script)
+	if err != nil {
+		return ""
+	}
+	return uuid
 }
 
 // ---- Actions ----------------------------------------------------------------
 
-// Run action with `text` without creating a new draft.
-// TODO: Add option to run on Draft (using "open" URL)
-// https://docs.getdrafts.com/docs/automation/urlschemes#runaction
+// RunAction runs an action with text (creates temp draft, runs action).
 func RunAction(action, text string) url.Values {
-	res := open("runAction", url.Values{
-		"text":   []string{text},
-		"action": []string{action},
-	})
-	return res
-}
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to make new draft with properties {content:"%s"}
+	set actionToRun to missing value
+	repeat with a in (every action)
+		if name of a is "%s" then
+			set actionToRun to a
+			exit repeat
+		end if
+	end repeat
+	if actionToRun is not missing value then
+		perform action actionToRun on draft d
+	end if
+	return id of d
+end tell`, escapeForAppleScript(text), escapeForAppleScript(action))
 
-// Run JavaScript program in Drafts. Params are available as an array `input`.
-// Returns any JSON added as `result` using context.addSuccessParameter.
-func JS(program string, params ...any) string {
-	js := mustJSON(struct {
-		Program string `json:"program"`
-		Input   []any  `json:"input"`
-	}{
-		program,
-		params,
-	})
-	v := RunAction("Drafts CLI Helper", string(js))
-	if v.Has("result") {
-		return v.Get("result")
-	}
-	return ""
+	uuid, _ := runAppleScript(script)
+
+	result := url.Values{}
+	result.Set("uuid", uuid)
+	return result
 }

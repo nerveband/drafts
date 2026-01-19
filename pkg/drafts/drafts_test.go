@@ -74,7 +74,7 @@ func TestPrepend(t *testing.T) {
 	defer func() {
 		Trash(uuid)
 	}()
-	Prepend(uuid, prefix)
+	Prepend(uuid, prefix, ModifyOptions{})
 	content := Get(uuid).Content
 	assert.Equal(t, prefix+"\n"+text, content)
 }
@@ -87,7 +87,7 @@ func TestAppend(t *testing.T) {
 		Trash(uuid)
 
 	}()
-	Append(uuid, suffix)
+	Append(uuid, suffix, ModifyOptions{})
 	content := Get(uuid).Content
 	assert.Equal(t, text+"\n"+suffix, content)
 }
