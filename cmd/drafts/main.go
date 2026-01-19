@@ -22,6 +22,8 @@ type NewCmd struct {
 	Action  string   `arg:"--action" help:"action to run after creation"`
 }
 
+type CreateCmd = NewCmd // Alias for 'new' using Drafts terminology
+
 func new(param *NewCmd) interface{} {
 	text := orStdin(param.Message)
 	opt := drafts.CreateOptions{
@@ -201,6 +203,7 @@ func main() {
 	var args struct {
 		Plain   bool        `arg:"--plain" help:"output plain text instead of JSON"`
 		New     *NewCmd     `arg:"subcommand:new" help:"create new draft"`
+		Create  *CreateCmd  `arg:"subcommand:create" help:"create new draft (alias for 'new')"`
 		Prepend *PrependCmd `arg:"subcommand:prepend" help:"prepend to draft"`
 		Append  *AppendCmd  `arg:"subcommand:append" help:"append to draft"`
 		Replace *ReplaceCmd `arg:"subcommand:replace" help:"replace content of draft"`
@@ -222,6 +225,8 @@ func main() {
 	switch {
 	case args.New != nil:
 		output(new(args.New))
+	case args.Create != nil:
+		output(new(args.Create))
 	case args.Prepend != nil:
 		output(prepend(args.Prepend))
 	case args.Append != nil:
