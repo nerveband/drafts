@@ -4,7 +4,7 @@ package main
 func getSchema(command string) interface{} {
 	schema := map[string]interface{}{
 		"name":    "drafts",
-		"version": "0.2.0",
+		"version": version,
 		"tools":   getTools(),
 	}
 

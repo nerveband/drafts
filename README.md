@@ -1,5 +1,9 @@
 # Drafts AppleScript CLI
 
+<p align="center">
+  <img src="drafts-cli-demo.gif" alt="Drafts CLI Demo" width="800">
+</p>
+
 Command line interface for [Drafts](https://getdrafts.com) on macOS.
 
 ## Requirements
@@ -86,6 +90,8 @@ Commands:
   list                 list drafts
   run                  run a Drafts action
   schema               output tool-use schema for LLM integration
+  upgrade              upgrade to the latest version
+  version              show version information
 ```
 
 ## Commands
@@ -184,6 +190,22 @@ Output tool-use schema for LLM integration.
 ```bash
 drafts schema          # Full schema
 drafts schema create   # Schema for specific command
+```
+
+### upgrade
+
+Upgrade to the latest version from GitHub releases.
+
+```bash
+drafts upgrade         # Check for and install updates
+```
+
+### version
+
+Show version information.
+
+```bash
+drafts version         # Display current version
 ```
 
 ## Output Formats

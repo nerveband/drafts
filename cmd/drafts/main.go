@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -168,6 +169,10 @@ type SchemaCmd struct {
 	Command string `arg:"positional" help:"command name (omit for full schema)"`
 }
 
+type UpgradeCmd struct{}
+
+type VersionCmd struct{}
+
 func run(param *RunCmd) interface{} {
 	var text string
 
@@ -213,6 +218,8 @@ func main() {
 		List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
 		Run     *RunCmd     `arg:"subcommand:run" help:"run a Drafts action"`
 		Schema  *SchemaCmd  `arg:"subcommand:schema" help:"output tool-use schema for LLM integration"`
+		Upgrade *UpgradeCmd `arg:"subcommand:upgrade" help:"upgrade to the latest version"`
+		Version *VersionCmd `arg:"subcommand:version" help:"show version information"`
 	}
 	p := arg.MustParse(&args)
 
@@ -220,7 +227,10 @@ func main() {
 	plainOutput = args.Plain
 
 	if p.Subcommand() == nil {
-		p.Fail("missing subcommand")
+		printBanner()
+		p.WriteHelp(os.Stdout)
+		fmt.Println()
+		return
 	}
 	switch {
 	case args.New != nil:
@@ -245,5 +255,9 @@ func main() {
 		output(run(args.Run))
 	case args.Schema != nil:
 		output(schema(args.Schema))
+	case args.Upgrade != nil:
+		output(runUpgrade())
+	case args.Version != nil:
+		output(runVersion())
 	}
 }
