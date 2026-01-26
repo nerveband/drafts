@@ -11,6 +11,13 @@ import (
 	"github.com/ernstwi/drafts/pkg/drafts"
 )
 
+// Documentation URLs
+const (
+	repoURL   = "https://github.com/nerveband/drafts-applescript-cli"
+	issuesURL = "https://github.com/nerveband/drafts-applescript-cli/issues"
+	docsURL   = "https://docs.getdrafts.com"
+)
+
 const linebreak = " ¶ "
 
 // ---- Commands ---------------------------------------------------------------
@@ -169,6 +176,11 @@ type SchemaCmd struct {
 	Command string `arg:"positional" help:"command name (omit for full schema)"`
 }
 
+type InfoCmd struct {
+	Verbose         bool `arg:"-v,--verbose" help:"show full lists of actions, tags, workspaces"`
+	TestPermissions bool `arg:"--test-permissions" help:"test what operations work with current setup"`
+}
+
 type UpgradeCmd struct{}
 
 type VersionCmd struct{}
@@ -204,23 +216,43 @@ func schema(param *SchemaCmd) interface{} {
 
 // ---- Main -------------------------------------------------------------------
 
+// Args holds command-line arguments
+type Args struct {
+	Plain   bool        `arg:"--plain" help:"output plain text instead of JSON"`
+	New     *NewCmd     `arg:"subcommand:new" help:"create new draft"`
+	Create  *CreateCmd  `arg:"subcommand:create" help:"create new draft (alias for 'new')"`
+	Prepend *PrependCmd `arg:"subcommand:prepend" help:"prepend to draft"`
+	Append  *AppendCmd  `arg:"subcommand:append" help:"append to draft"`
+	Replace *ReplaceCmd `arg:"subcommand:replace" help:"replace content of draft"`
+	Edit    *EditCmd    `arg:"subcommand:edit" help:"edit draft in $EDITOR"`
+	Get     *GetCmd     `arg:"subcommand:get" help:"get content of draft"`
+	Select  *SelectCmd  `arg:"subcommand:select" help:"select active draft using fzf"`
+	List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
+	Run     *RunCmd     `arg:"subcommand:run" help:"run a Drafts action"`
+	Info    *InfoCmd    `arg:"subcommand:info" help:"show environment info and diagnostics"`
+	Schema  *SchemaCmd  `arg:"subcommand:schema" help:"output tool-use schema for LLM integration"`
+	Upgrade *UpgradeCmd `arg:"subcommand:upgrade" help:"upgrade to the latest version"`
+	Version *VersionCmd `arg:"subcommand:version" help:"show version information"`
+}
+
+// Description returns the program description for help
+func (Args) Description() string {
+	return "Drafts CLI - Interact with Drafts.app from the command line\n\nRequires: macOS, Drafts.app running, Drafts Pro subscription"
+}
+
+// Epilogue returns the footer for help output
+func (Args) Epilogue() string {
+	return fmt.Sprintf(`Documentation:
+  Repository:     %s
+  Report issues:  %s
+  Drafts docs:    %s
+
+For LLMs: Run 'drafts info' to check environment status before starting.
+          Run 'drafts upgrade' if you encounter unexpected errors.`, repoURL, issuesURL, docsURL)
+}
+
 func main() {
-	var args struct {
-		Plain   bool        `arg:"--plain" help:"output plain text instead of JSON"`
-		New     *NewCmd     `arg:"subcommand:new" help:"create new draft"`
-		Create  *CreateCmd  `arg:"subcommand:create" help:"create new draft (alias for 'new')"`
-		Prepend *PrependCmd `arg:"subcommand:prepend" help:"prepend to draft"`
-		Append  *AppendCmd  `arg:"subcommand:append" help:"append to draft"`
-		Replace *ReplaceCmd `arg:"subcommand:replace" help:"replace content of draft"`
-		Edit    *EditCmd    `arg:"subcommand:edit" help:"edit draft in $EDITOR"`
-		Get     *GetCmd     `arg:"subcommand:get" help:"get content of draft"`
-		Select  *SelectCmd  `arg:"subcommand:select" help:"select active draft using fzf"`
-		List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
-		Run     *RunCmd     `arg:"subcommand:run" help:"run a Drafts action"`
-		Schema  *SchemaCmd  `arg:"subcommand:schema" help:"output tool-use schema for LLM integration"`
-		Upgrade *UpgradeCmd `arg:"subcommand:upgrade" help:"upgrade to the latest version"`
-		Version *VersionCmd `arg:"subcommand:version" help:"show version information"`
-	}
+	var args Args
 	p := arg.MustParse(&args)
 
 	// Set global plain output flag
@@ -230,6 +262,10 @@ func main() {
 		printBanner()
 		p.WriteHelp(os.Stdout)
 		fmt.Println()
+		fmt.Println(args.Epilogue())
+		fmt.Println()
+		// Check for updates on help display
+		checkAndNotifyUpdate()
 		return
 	}
 	switch {
@@ -253,11 +289,15 @@ func main() {
 		output(list(args.List))
 	case args.Run != nil:
 		output(run(args.Run))
+	case args.Info != nil:
+		output(runInfo(args.Info))
+		checkAndNotifyUpdate()
 	case args.Schema != nil:
 		output(schema(args.Schema))
 	case args.Upgrade != nil:
 		output(runUpgrade())
 	case args.Version != nil:
 		output(runVersion())
+		checkAndNotifyUpdate()
 	}
 }

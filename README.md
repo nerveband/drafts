@@ -73,6 +73,10 @@ drafts get <uuid>
 
 ```
 $ drafts --help
+Drafts CLI - Interact with Drafts.app from the command line
+
+Requires: macOS, Drafts.app running, Drafts Pro subscription
+
 Usage: drafts [--plain] <command> [<args>]
 
 Options:
@@ -89,9 +93,15 @@ Commands:
   select               select active draft using fzf
   list                 list drafts
   run                  run a Drafts action
+  info                 show environment info and diagnostics
   schema               output tool-use schema for LLM integration
   upgrade              upgrade to the latest version
   version              show version information
+
+Documentation:
+  Repository:     https://github.com/nerveband/drafts-applescript-cli
+  Report issues:  https://github.com/nerveband/drafts-applescript-cli/issues
+  Drafts docs:    https://docs.getdrafts.com
 ```
 
 ## Commands
@@ -183,6 +193,30 @@ drafts run "Action Name" "Text to process"
 drafts run "Action Name" -u UUID    # Run on existing draft
 ```
 
+### info
+
+Show environment information and diagnostics. **Run this first** to verify your setup.
+
+```bash
+drafts info                    # Basic info
+drafts info --verbose          # Include full lists of actions, tags, workspaces
+drafts info --test-permissions # Test what operations work
+```
+
+**Example output:**
+```json
+{
+  "success": true,
+  "data": {
+    "cli": {"version": "0.2.0", "os": "darwin", "arch": "arm64"},
+    "drafts_app": {"running": true, "version": "47.1", "pro": true},
+    "counts": {"inbox": 142, "flagged": 8, "archive": 1203, "trash": 12, "all": 1357},
+    "available_tags": ["work", "personal", "ideas"],
+    "recent_drafts": [{"uuid": "ABC123", "title": "Meeting notes", "modified": "..."}]
+  }
+}
+```
+
 ### schema
 
 Output tool-use schema for LLM integration.
@@ -237,6 +271,55 @@ This CLI is designed for LLM tool use:
 - **Structured errors** - Error code, message, and recovery hints
 - **Tool-use schema** - Get schema with `drafts schema`
 - **Full metadata** - All draft properties returned
+- **Self-diagnostics** - `drafts info` shows environment status
+- **Auto-update notifications** - CLI notifies when updates available
+
+### For LLMs and Automated Agents
+
+**Before starting any workflow:**
+
+```bash
+# 1. Check environment status
+drafts info
+
+# 2. If issues or missing features, upgrade
+drafts upgrade
+
+# 3. Verify version
+drafts version
+```
+
+**When to run `drafts upgrade`:**
+- Before starting new tasks or workflows
+- After encountering unexpected errors
+- When documentation mentions features not available in your version
+- When you see "Update available" notification
+- Periodically to stay up to date with latest improvements
+
+**When to run `drafts info`:**
+- At the start of any session to verify Drafts is running
+- After errors to diagnose environment issues
+- To discover available actions, tags, and workspaces
+- To verify Pro subscription is active
+
+**Error handling workflow:**
+```bash
+# If a command fails unexpectedly:
+1. Run 'drafts info' to check environment
+2. Check if Drafts.app is running
+3. Run 'drafts upgrade' to get latest fixes
+4. Retry the command
+```
+
+### Error Codes Reference
+
+| Code | Meaning | Resolution |
+|------|---------|------------|
+| `DRAFT_NOT_FOUND` | UUID doesn't match any draft | Use `drafts list` to find valid UUIDs |
+| `DRAFTS_NOT_RUNNING` | Drafts.app not running | Run `open -a Drafts` |
+| `PERMISSION_DENIED` | Automation permission denied | Check System Settings > Privacy > Automation |
+| `ACTION_NOT_FOUND` | Named action doesn't exist | Use `drafts info --verbose` to list actions |
+| `PRO_REQUIRED` | Feature requires Drafts Pro | Subscribe to Drafts Pro |
 
 ### ClawdBot Skill
 
@@ -244,11 +327,18 @@ A ClawdBot skill is available for this CLI. Install to `~/.clawdbot/skills/draft
 
 ## Troubleshooting
 
+**Quick diagnosis:** Run `drafts info` to see environment status and identify issues.
+
 ### "AppleScript error" or no response
 
 1. **Is Drafts running?** The app must be open: `open -a Drafts`
 2. **Is Drafts Pro active?** Automation requires Pro subscription
 3. **Permissions granted?** Go to System Settings > Privacy & Security > Automation and ensure Terminal (or your app) can control Drafts
+
+**Automated check:**
+```bash
+drafts info --test-permissions
+```
 
 ### "command not found: drafts"
 
@@ -260,6 +350,32 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 ### Commands hang or timeout
 
 Drafts may be showing a dialog. Check the Drafts app window.
+
+### Unexpected errors or missing features
+
+```bash
+# Check current version
+drafts version
+
+# Upgrade to latest
+drafts upgrade
+
+# Verify environment
+drafts info
+```
+
+### Permission denied errors
+
+```bash
+# Test what permissions you have
+drafts info --test-permissions
+```
+
+If permissions fail:
+1. Open System Settings > Privacy & Security > Automation
+2. Find your terminal app (Terminal, iTerm, etc.)
+3. Ensure "Drafts" is checked
+4. Restart your terminal
 
 ## Architecture
 

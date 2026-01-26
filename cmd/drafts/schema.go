@@ -190,5 +190,43 @@ func getTools() []interface{} {
 				"required": []string{"action"},
 			},
 		},
+		map[string]interface{}{
+			"name":        "drafts_info",
+			"description": "Get environment information and diagnostics. Shows CLI version, Drafts.app status, Pro subscription, draft counts, available tags, and recent drafts. Use --verbose for full lists of actions and workspaces. Use --test-permissions to verify what operations work.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"verbose": map[string]interface{}{
+						"type":        "boolean",
+						"default":     false,
+						"description": "Show full lists of actions, tags, and workspaces",
+					},
+					"test_permissions": map[string]interface{}{
+						"type":        "boolean",
+						"default":     false,
+						"description": "Test read, write, and action permissions",
+					},
+				},
+				"required": []string{},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_upgrade",
+			"description": "Upgrade to the latest version from GitHub releases. Checks for updates and installs if a newer version is available.",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+				"required":   []string{},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_version",
+			"description": "Show current CLI version information including OS and architecture.",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+				"required":   []string{},
+			},
+		},
 	}
 }

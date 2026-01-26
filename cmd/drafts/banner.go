@@ -56,5 +56,5 @@ func printBanner() {
 }
 
 func printFullBanner() {
-	fmt.Println(bannerSimple)
+	fmt.Print(bannerSimple)
 }
