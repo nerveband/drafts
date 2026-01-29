@@ -228,17 +228,31 @@ func parseDraftFromAppleScript(output string) Draft {
 
 // Query for drafts.
 func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
-	// Build the folder filter clause
-	var folderFilter string
+	// Build filter clauses for the AppleScript "whose" clause
+	var filterClauses []string
+
 	switch filter {
 	case FilterArchive:
-		folderFilter = "whose folder is archive"
+		filterClauses = append(filterClauses, "folder is archive")
 	case FilterTrash:
-		folderFilter = "whose folder is trash"
+		filterClauses = append(filterClauses, "folder is trash")
+	case FilterFlagged:
+		filterClauses = append(filterClauses, "folder is inbox", "flagged is true")
 	case FilterAll:
-		folderFilter = "" // No filter
-	default: // FilterInbox, FilterFlagged
-		folderFilter = "whose folder is inbox"
+		// No folder filter
+	default: // FilterInbox
+		filterClauses = append(filterClauses, "folder is inbox")
+	}
+
+	// Content search at AppleScript level
+	if queryString != "" {
+		filterClauses = append(filterClauses, fmt.Sprintf(`content contains "%s"`, escapeForAppleScript(queryString)))
+	}
+
+	// Build the whose clause
+	whereClause := ""
+	if len(filterClauses) > 0 {
+		whereClause = "whose " + strings.Join(filterClauses, " and ")
 	}
 
 	script := fmt.Sprintf(`tell application "Drafts"
@@ -269,7 +283,7 @@ func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
 		end if
 	end repeat
 	return output
-end tell`, folderFilter)
+end tell`, whereClause)
 
 	output, err := runAppleScript(script)
 	if err != nil {

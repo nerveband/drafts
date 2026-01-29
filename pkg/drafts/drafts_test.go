@@ -276,6 +276,39 @@ func TestSetLanguageGrammar(t *testing.T) {
 	assert.Equal(t, text, draft.Content)
 }
 
+func TestQueryContentSearch(t *testing.T) {
+	tag := rand()
+	needle := "UNIQUE_SEARCH_" + rand()
+
+	a := Create("has the needle "+needle+" inside", CreateOptions{Tags: []string{tag}})
+	b := Create("no match here", CreateOptions{Tags: []string{tag}})
+	defer func() {
+		Trash(a)
+		Trash(b)
+	}()
+
+	// Search with content filter — should only return draft "a"
+	results := Query(needle, FilterInbox, QueryOptions{Tags: []string{tag}})
+	uuids := getUUIDs(results)
+	assert.EqualSlice(t, []string{a}, uuids)
+}
+
+func TestQueryFlagged(t *testing.T) {
+	tag := rand()
+
+	a := Create("flagged draft", CreateOptions{Tags: []string{tag}, Flagged: true})
+	b := Create("unflagged draft", CreateOptions{Tags: []string{tag}})
+	defer func() {
+		Trash(a)
+		Trash(b)
+	}()
+
+	// FilterFlagged should only return the flagged draft
+	results := Query("", FilterFlagged, QueryOptions{Tags: []string{tag}})
+	uuids := getUUIDs(results)
+	assert.EqualSlice(t, []string{a}, uuids)
+}
+
 // ---- Helpers ----------------------------------------------------------------
 
 // Return a random string.
