@@ -13,7 +13,7 @@ const repoOwner = "nerveband"
 const repoName = "drafts-applescript-cli"
 
 // version is set at build time via ldflags
-var version = "0.2.0"
+var version = "2.1.0"
 
 func runUpgrade() interface{} {
 	fmt.Printf("Current version: %s\n", version)
