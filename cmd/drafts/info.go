@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/ernstwi/drafts/pkg/drafts"
 )
@@ -91,7 +90,7 @@ func runInfo(param *InfoCmd) interface{} {
 	if param.Verbose {
 		result.Tags = getAvailableTags()
 		result.Actions = getAvailableActions()
-		result.Workspaces = getAvailableWorkspaces()
+		result.Workspaces = drafts.Workspaces()
 	}
 
 	// Get recent drafts (last 5)
@@ -246,30 +245,6 @@ end tell`
 	actions := strings.Split(output, "|||")
 	sort.Strings(actions)
 	return actions
-}
-
-func getAvailableWorkspaces() []string {
-	script := `tell application "Drafts"
-	set wsNames to {}
-	repeat with w in (every workspace)
-		set end of wsNames to (name of w)
-	end repeat
-	set output to ""
-	repeat with n in wsNames
-		if output is "" then
-			set output to n
-		else
-			set output to output & "|||" & n
-		end if
-	end repeat
-	return output
-end tell`
-	output, err := runSimpleAppleScript(script)
-	if err != nil || output == "" {
-		return []string{}
-	}
-	workspaces := strings.Split(output, "|||")
-	return workspaces
 }
 
 func getRecentDrafts(limit int) []RecentDraft {
@@ -480,6 +455,3 @@ func runSimpleAppleScript(script string) (string, error) {
 	}
 	return strings.TrimSpace(string(output)), nil
 }
-
-// Unused but keeping for potential future use
-var _ = time.Now
