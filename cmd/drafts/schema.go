@@ -92,6 +92,14 @@ func getTools() []interface{} {
 						"items":       map[string]interface{}{"type": "string"},
 						"description": "Filter by tags",
 					},
+					"search": map[string]interface{}{
+						"type":        "string",
+						"description": "Search draft content (AppleScript-level filtering)",
+					},
+					"workspace": map[string]interface{}{
+						"type":        "string",
+						"description": "Filter by workspace name",
+					},
 				},
 				"required": []string{},
 			},
@@ -226,6 +234,67 @@ func getTools() []interface{} {
 				"type":       "object",
 				"properties": map[string]interface{}{},
 				"required":   []string{},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_flag",
+			"description": "Flag a draft",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"uuid": map[string]interface{}{
+						"type":        "string",
+						"description": "UUID of the draft (omit for active draft)",
+					},
+				},
+				"required": []string{},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_unflag",
+			"description": "Unflag a draft",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"uuid": map[string]interface{}{
+						"type":        "string",
+						"description": "UUID of the draft (omit for active draft)",
+					},
+				},
+				"required": []string{},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_syntax",
+			"description": "Set the language grammar/syntax of a draft (e.g., Markdown, JavaScript, Plain Text)",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"grammar": map[string]interface{}{
+						"type":        "string",
+						"description": "Language grammar name (e.g., Markdown, JavaScript, Plain Text)",
+					},
+					"uuid": map[string]interface{}{
+						"type":        "string",
+						"description": "UUID of the draft (omit for active draft)",
+					},
+				},
+				"required": []string{"grammar"},
+			},
+		},
+		map[string]interface{}{
+			"name":        "drafts_workspace",
+			"description": "Show current workspace or list all workspaces",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"list": map[string]interface{}{
+						"type":        "boolean",
+						"default":     false,
+						"description": "List all workspaces instead of showing current",
+					},
+				},
+				"required": []string{},
 			},
 		},
 	}
