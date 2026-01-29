@@ -237,6 +237,40 @@ func TestGetReturnsLocationFields(t *testing.T) {
 	}
 }
 
+func TestSetFlagged(t *testing.T) {
+	text := rand()
+	uuid := Create(text, CreateOptions{})
+	defer func() {
+		Trash(uuid)
+	}()
+
+	// Verify starts unflagged
+	draft := Get(uuid)
+	assert.Equal(t, false, draft.IsFlagged)
+
+	// Flag it
+	SetFlagged(uuid, true)
+	draft = Get(uuid)
+	assert.Equal(t, true, draft.IsFlagged)
+
+	// Unflag it
+	SetFlagged(uuid, false)
+	draft = Get(uuid)
+	assert.Equal(t, false, draft.IsFlagged)
+}
+
+func TestSetLanguageGrammar(t *testing.T) {
+	text := rand()
+	uuid := Create(text, CreateOptions{})
+	defer func() {
+		Trash(uuid)
+	}()
+
+	SetLanguageGrammar(uuid, "JavaScript")
+	draft := Get(uuid)
+	assert.Equal(t, "JavaScript", draft.LanguageGrammar)
+}
+
 // ---- Helpers ----------------------------------------------------------------
 
 // Return a random string.

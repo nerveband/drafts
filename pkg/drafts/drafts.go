@@ -123,6 +123,20 @@ end tell`, escapeForAppleScript(uuid), tagsToAppleScript(tags))
 	runAppleScript(script)
 }
 
+// SetFlagged sets the flagged status of a draft.
+func SetFlagged(uuid string, flagged bool) {
+	flaggedStr := "false"
+	if flagged {
+		flaggedStr = "true"
+	}
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set flagged of d to %s
+end tell`, escapeForAppleScript(uuid), flaggedStr)
+
+	runAppleScript(script)
+}
+
 // ---- Reading drafts ---------------------------------------------------------
 
 // Get content of draft.
