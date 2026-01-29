@@ -390,3 +390,109 @@ end tell`, escapeForAppleScript(text), escapeForAppleScript(action))
 	result.Set("uuid", uuid)
 	return result
 }
+
+// ---- Workspaces -------------------------------------------------------------
+
+// QueryWorkspace returns drafts from a specific workspace.
+func QueryWorkspace(workspace string, filter Filter, opt QueryOptions) []Draft {
+	if workspace == "" {
+		return []Draft{}
+	}
+
+	script := fmt.Sprintf(`tell application "Drafts"
+	set output to ""
+	set ws to workspace "%s"
+	set allDrafts to every draft of ws
+	repeat with d in allDrafts
+		set folder_name to folder of d as string
+		set is_archived to false
+		set is_trashed to false
+		if folder_name is "archive" then
+			set is_archived to true
+		else if folder_name is "trash" then
+			set is_trashed to true
+		end if
+		set tag_list to tags of d
+		set tag_str to ""
+		repeat with t in tag_list
+			if tag_str is not "" then
+				set tag_str to tag_str & "|||"
+			end if
+			set tag_str to tag_str & t
+		end repeat
+		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
+		if output is "" then
+			set output to line_out
+		else
+			set output to output & linefeed & line_out
+		end if
+	end repeat
+	return output
+end tell`, escapeForAppleScript(workspace))
+
+	output, err := runAppleScript(script)
+	if err != nil {
+		return []Draft{}
+	}
+
+	if output == "" {
+		return []Draft{}
+	}
+
+	lines := strings.Split(output, "\n")
+	results := make([]Draft, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			d := parseDraftFromAppleScript(line)
+			if d.UUID != "" {
+				if len(opt.Tags) > 0 && !hasAllTags(d.Tags, opt.Tags) {
+					continue
+				}
+				if len(opt.OmitTags) > 0 && hasAnyTag(d.Tags, opt.OmitTags) {
+					continue
+				}
+				results = append(results, d)
+			}
+		}
+	}
+
+	return results
+}
+
+// CurrentWorkspace returns the name of the current workspace.
+func CurrentWorkspace() string {
+	script := `tell application "Drafts"
+	return name of current workspace
+end tell`
+
+	name, err := runAppleScript(script)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
+// Workspaces returns the names of all workspaces.
+func Workspaces() []string {
+	script := `tell application "Drafts"
+	set wsNames to {}
+	repeat with w in (every workspace)
+		set end of wsNames to (name of w)
+	end repeat
+	set output to ""
+	repeat with n in wsNames
+		if output is "" then
+			set output to n
+		else
+			set output to output & "|||" & n
+		end if
+	end repeat
+	return output
+end tell`
+
+	output, err := runAppleScript(script)
+	if err != nil || output == "" {
+		return []string{}
+	}
+	return strings.Split(output, "|||")
+}

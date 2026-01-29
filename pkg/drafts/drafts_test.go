@@ -309,6 +309,37 @@ func TestQueryFlagged(t *testing.T) {
 	assert.EqualSlice(t, []string{a}, uuids)
 }
 
+// ---- Workspace tests --------------------------------------------------------
+
+func TestQueryWorkspace(t *testing.T) {
+	results := QueryWorkspace("", FilterAll, QueryOptions{})
+	// Empty workspace name should return empty slice, not nil
+	if results == nil {
+		t.Errorf("expected non-nil result from QueryWorkspace with empty name")
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results for empty workspace name, got %d", len(results))
+	}
+}
+
+func TestCurrentWorkspace(t *testing.T) {
+	ws := CurrentWorkspace()
+	// Should return some string (Drafts always has a workspace)
+	if ws == "" {
+		t.Errorf("expected non-empty current workspace name")
+	}
+}
+
+func TestWorkspaces(t *testing.T) {
+	workspaces := Workspaces()
+	if workspaces == nil {
+		t.Errorf("expected non-nil workspaces list")
+	}
+	if len(workspaces) == 0 {
+		t.Errorf("expected at least one workspace")
+	}
+}
+
 // ---- Helpers ----------------------------------------------------------------
 
 // Return a random string.
