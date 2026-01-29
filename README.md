@@ -92,6 +92,10 @@ Commands:
   get                  get content of draft
   select               select active draft using fzf
   list                 list drafts
+  flag                 flag a draft
+  unflag               unflag a draft
+  syntax               set language grammar/syntax
+  workspace            show/list workspaces
   run                  run a Drafts action
   info                 show environment info and diagnostics
   schema               output tool-use schema for LLM integration
@@ -143,8 +147,10 @@ List drafts with optional filtering.
 drafts list [options]
 
 Options:
-  -f, --filter FILTER  Filter: inbox|archive|trash|all (default: inbox)
+  -f, --filter FILTER  Filter: inbox|flagged|archive|trash|all (default: inbox)
   -t, --tag TAG        Filter by tag (can be used multiple times)
+  -s, --search TEXT    Search draft content
+  -w, --workspace NAME Filter by workspace name
 ```
 
 **Examples:**
@@ -152,6 +158,35 @@ Options:
 drafts list                    # List inbox
 drafts list -f archive         # List archived
 drafts list -t work            # Filter by tag
+drafts list -s "meeting"       # Search content
+drafts list -w "My Workspace"  # Filter by workspace
+```
+
+### flag / unflag
+
+Toggle flagged status on a draft.
+
+```bash
+drafts flag [UUID]             # Flag (omit UUID for active draft)
+drafts unflag [UUID]           # Unflag (omit UUID for active draft)
+```
+
+### syntax
+
+Set the language grammar / syntax highlighting of a draft.
+
+```bash
+drafts syntax "JavaScript" [-u UUID]
+drafts syntax "Markdown"       # Set on active draft
+```
+
+### workspace
+
+Show current workspace or list all workspaces.
+
+```bash
+drafts workspace               # Show current workspace
+drafts workspace --list        # List all workspaces
 ```
 
 ### prepend / append
@@ -208,7 +243,7 @@ drafts info --test-permissions # Test what operations work
 {
   "success": true,
   "data": {
-    "cli": {"version": "0.2.0", "os": "darwin", "arch": "arm64"},
+    "cli": {"version": "2.1.0", "os": "darwin", "arch": "arm64"},
     "drafts_app": {"running": true, "version": "47.1", "pro": true},
     "counts": {"inbox": 142, "flagged": 8, "archive": 1203, "trash": 12, "all": 1357},
     "available_tags": ["work", "personal", "ideas"],
@@ -253,7 +288,13 @@ drafts version         # Display current version
     "content": "Note content",
     "title": "Note title",
     "tags": ["tag1"],
-    "folder": "inbox"
+    "isFlagged": false,
+    "isArchived": false,
+    "isTrashed": false,
+    "folder": "inbox",
+    "createdAt": "2026-01-29 10:00:00",
+    "modifiedAt": "2026-01-29 10:30:00",
+    "permalink": "drafts://open?uuid=ABC-123"
   }
 }
 ```
@@ -321,9 +362,18 @@ drafts version
 | `ACTION_NOT_FOUND` | Named action doesn't exist | Use `drafts info --verbose` to list actions |
 | `PRO_REQUIRED` | Feature requires Drafts Pro | Subscribe to Drafts Pro |
 
-### ClawdBot Skill
+### AI Agent Skill
 
-A ClawdBot skill is available for this CLI. Install to `~/.clawdbot/skills/drafts/SKILL.md`.
+An AI agent skill file is included in this repo at [`skills/SKILL.md`](skills/SKILL.md). This skill teaches AI agents (Claude Code, ClawdBot, etc.) how to use the Drafts CLI.
+
+**To install:**
+```bash
+# Copy to your skills directory
+cp skills/SKILL.md ~/.config/skillshare/skills/drafts/SKILL.md
+
+# Or for ClawdBot
+cp skills/SKILL.md ~/.clawdbot/skills/drafts/SKILL.md
+```
 
 ## Troubleshooting
 
