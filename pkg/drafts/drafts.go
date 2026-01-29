@@ -145,7 +145,7 @@ func Get(uuid string) Draft {
 		end if
 		set tag_str to tag_str & t
 	end repeat
-	return (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((createdAt of d) as string) & "	" & ((modifiedAt of d) as string) & "	" & (permalink of d)
+	return (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
 end tell`, escapeForAppleScript(uuid))
 
 	output, err := runAppleScript(script)
@@ -168,7 +168,7 @@ func parseDraftFromAppleScript(output string) Draft {
 		tags = strings.Split(parts[7], "|||")
 	}
 
-	return Draft{
+	d := Draft{
 		UUID:       parts[0],
 		Title:      parts[1],
 		Content:    parts[2],
@@ -181,6 +181,25 @@ func parseDraftFromAppleScript(output string) Draft {
 		ModifiedAt: parts[9],
 		Permalink:  parts[10],
 	}
+
+	// Parse new fields (backward-compatible: only if present)
+	if len(parts) > 11 {
+		d.LanguageGrammar = parts[11]
+	}
+	if len(parts) > 12 {
+		fmt.Sscanf(parts[12], "%f", &d.CreatedLatitude)
+	}
+	if len(parts) > 13 {
+		fmt.Sscanf(parts[13], "%f", &d.CreatedLongitude)
+	}
+	if len(parts) > 14 {
+		fmt.Sscanf(parts[14], "%f", &d.ModifiedLatitude)
+	}
+	if len(parts) > 15 {
+		fmt.Sscanf(parts[15], "%f", &d.ModifiedLongitude)
+	}
+
+	return d
 }
 
 // Query for drafts.
@@ -218,7 +237,7 @@ func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
 			end if
 			set tag_str to tag_str & t
 		end repeat
-		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((createdAt of d) as string) & "	" & ((modifiedAt of d) as string) & "	" & (permalink of d)
+		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
 		if output is "" then
 			set output to line_out
 		else

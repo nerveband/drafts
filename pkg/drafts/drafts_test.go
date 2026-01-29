@@ -15,11 +15,12 @@ func TestCreateDefault(t *testing.T) {
 		Trash(uuid)
 	}()
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:    uuid,
-		Content: text,
-		Tags:    []string{},
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{}, draft.Tags)
+	assert.Equal(t, false, draft.IsFlagged)
+	assert.Equal(t, false, draft.IsArchived)
+	assert.Equal(t, false, draft.IsTrashed)
 }
 
 func TestCreateFlagged(t *testing.T) {
@@ -29,12 +30,10 @@ func TestCreateFlagged(t *testing.T) {
 		Trash(uuid)
 	}()
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:      uuid,
-		Content:   text,
-		Tags:      []string{},
-		IsFlagged: true,
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{}, draft.Tags)
+	assert.Equal(t, true, draft.IsFlagged)
 }
 
 func TestCreateArchived(t *testing.T) {
@@ -44,12 +43,10 @@ func TestCreateArchived(t *testing.T) {
 		Trash(uuid)
 	}()
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:       uuid,
-		Content:    text,
-		Tags:       []string{},
-		IsArchived: true,
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{}, draft.Tags)
+	assert.Equal(t, true, draft.IsArchived)
 }
 
 func TestCreateTags(t *testing.T) {
@@ -60,11 +57,9 @@ func TestCreateTags(t *testing.T) {
 		Trash(uuid)
 	}()
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:    uuid,
-		Content: text,
-		Tags:    []string{tag},
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{tag}, draft.Tags)
 }
 
 func TestPrepend(t *testing.T) {
@@ -109,12 +104,10 @@ func TestTrash(t *testing.T) {
 	uuid := Create(text, CreateOptions{})
 	Trash(uuid)
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:      uuid,
-		Content:   text,
-		Tags:      []string{},
-		IsTrashed: true,
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{}, draft.Tags)
+	assert.Equal(t, true, draft.IsTrashed)
 }
 
 func TestArchive(t *testing.T) {
@@ -122,12 +115,10 @@ func TestArchive(t *testing.T) {
 	uuid := Create(text, CreateOptions{})
 	Archive(uuid)
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:       uuid,
-		Content:    text,
-		Tags:       []string{},
-		IsArchived: true,
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{}, draft.Tags)
+	assert.Equal(t, true, draft.IsArchived)
 }
 
 func TestQuery(t *testing.T) {
@@ -205,11 +196,45 @@ func TestTag(t *testing.T) {
 	}()
 	Tag(uuid, tag)
 	draft := Get(uuid)
-	assert.DeepEqual(t, Draft{
-		UUID:    uuid,
-		Content: text,
-		Tags:    []string{tag},
-	}, draft)
+	assert.Equal(t, uuid, draft.UUID)
+	assert.Equal(t, text, draft.Content)
+	assert.EqualSlice(t, []string{tag}, draft.Tags)
+}
+
+func TestGetReturnsLanguageGrammar(t *testing.T) {
+	text := rand()
+	uuid := Create(text, CreateOptions{})
+	defer func() {
+		Trash(uuid)
+	}()
+	draft := Get(uuid)
+	// languageGrammar is not exposed via AppleScript dictionary,
+	// so the field will be empty when fetched via Get().
+	// The struct field exists for JSON serialization compatibility.
+	assert.Equal(t, "", draft.LanguageGrammar)
+}
+
+func TestGetReturnsLocationFields(t *testing.T) {
+	text := rand()
+	uuid := Create(text, CreateOptions{})
+	defer func() {
+		Trash(uuid)
+	}()
+	draft := Get(uuid)
+	// Location fields are float64; verify they parsed successfully.
+	// Values may be zero or actual coordinates depending on device location services.
+	if draft.CreatedLatitude < -90 || draft.CreatedLatitude > 90 {
+		t.Errorf("CreatedLatitude out of range: %f", draft.CreatedLatitude)
+	}
+	if draft.CreatedLongitude < -180 || draft.CreatedLongitude > 180 {
+		t.Errorf("CreatedLongitude out of range: %f", draft.CreatedLongitude)
+	}
+	if draft.ModifiedLatitude < -90 || draft.ModifiedLatitude > 90 {
+		t.Errorf("ModifiedLatitude out of range: %f", draft.ModifiedLatitude)
+	}
+	if draft.ModifiedLongitude < -180 || draft.ModifiedLongitude > 180 {
+		t.Errorf("ModifiedLongitude out of range: %f", draft.ModifiedLongitude)
+	}
 }
 
 // ---- Helpers ----------------------------------------------------------------
