@@ -137,6 +137,16 @@ end tell`, escapeForAppleScript(uuid), flaggedStr)
 	runAppleScript(script)
 }
 
+// SetLanguageGrammar sets the syntax highlighting language of a draft.
+func SetLanguageGrammar(uuid, grammar string) {
+	script := fmt.Sprintf(`tell application "Drafts"
+	set d to draft id "%s"
+	set languageGrammar of d to "%s"
+end tell`, escapeForAppleScript(uuid), escapeForAppleScript(grammar))
+
+	runAppleScript(script)
+}
+
 // ---- Reading drafts ---------------------------------------------------------
 
 // Get content of draft.
