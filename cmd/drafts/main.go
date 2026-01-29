@@ -134,9 +134,60 @@ func _select() interface{} {
 	return drafts.Get(uuid)
 }
 
+type FlagCmd struct {
+	UUID string `arg:"positional" help:"UUID (omit to use active draft)"`
+}
+
+type UnflagCmd struct {
+	UUID string `arg:"positional" help:"UUID (omit to use active draft)"`
+}
+
+func flag(param *FlagCmd) interface{} {
+	uuid := orActive(param.UUID)
+	drafts.SetFlagged(uuid, true)
+	return drafts.Get(uuid)
+}
+
+func unflag(param *UnflagCmd) interface{} {
+	uuid := orActive(param.UUID)
+	drafts.SetFlagged(uuid, false)
+	return drafts.Get(uuid)
+}
+
+type SyntaxCmd struct {
+	Grammar string `arg:"positional,required" help:"language grammar (e.g., Markdown, JavaScript, Plain Text)"`
+	UUID    string `arg:"-u" help:"UUID (omit to use active draft)"`
+}
+
+func syntax(param *SyntaxCmd) interface{} {
+	uuid := orActive(param.UUID)
+	drafts.SetLanguageGrammar(uuid, param.Grammar)
+	return drafts.Get(uuid)
+}
+
+type WorkspaceCmd struct {
+	List bool `arg:"-l,--list" help:"list all workspaces"`
+}
+
+func workspace(param *WorkspaceCmd) interface{} {
+	if param.List {
+		ws := drafts.Workspaces()
+		return map[string]interface{}{
+			"workspaces": ws,
+			"count":      len(ws),
+		}
+	}
+	current := drafts.CurrentWorkspace()
+	return map[string]interface{}{
+		"current": current,
+	}
+}
+
 type ListCmd struct {
-	Filter string   `arg:"-f" default:"inbox" help:"filter: inbox|flagged|archive|trash|all"`
-	Tag    []string `arg:"-t,separate" help:"filter by tag"`
+	Filter    string   `arg:"-f" default:"inbox" help:"filter: inbox|flagged|archive|trash|all"`
+	Tag       []string `arg:"-t,separate" help:"filter by tag"`
+	Search    string   `arg:"-s" help:"search draft content"`
+	Workspace string   `arg:"-w" help:"filter by workspace name"`
 }
 
 func parseFilter(s string) drafts.Filter {
@@ -158,12 +209,26 @@ func parseFilter(s string) drafts.Filter {
 
 func list(param *ListCmd) interface{} {
 	filter := parseFilter(param.Filter)
-	ds := drafts.Query("", filter, drafts.QueryOptions{Tags: param.Tag})
-	return map[string]interface{}{
+
+	var ds []drafts.Draft
+	if param.Workspace != "" {
+		ds = drafts.QueryWorkspace(param.Workspace, filter, drafts.QueryOptions{Tags: param.Tag})
+	} else {
+		ds = drafts.Query(param.Search, filter, drafts.QueryOptions{Tags: param.Tag})
+	}
+
+	result := map[string]interface{}{
 		"drafts": ds,
 		"count":  len(ds),
 		"filter": param.Filter,
 	}
+	if param.Search != "" {
+		result["search"] = param.Search
+	}
+	if param.Workspace != "" {
+		result["workspace"] = param.Workspace
+	}
+	return result
 }
 
 type RunCmd struct {
@@ -227,8 +292,12 @@ type Args struct {
 	Edit    *EditCmd    `arg:"subcommand:edit" help:"edit draft in $EDITOR"`
 	Get     *GetCmd     `arg:"subcommand:get" help:"get content of draft"`
 	Select  *SelectCmd  `arg:"subcommand:select" help:"select active draft using fzf"`
-	List    *ListCmd    `arg:"subcommand:list" help:"list drafts"`
-	Run     *RunCmd     `arg:"subcommand:run" help:"run a Drafts action"`
+	List      *ListCmd      `arg:"subcommand:list" help:"list drafts"`
+	Flag      *FlagCmd      `arg:"subcommand:flag" help:"flag a draft"`
+	Unflag    *UnflagCmd    `arg:"subcommand:unflag" help:"unflag a draft"`
+	Syntax    *SyntaxCmd    `arg:"subcommand:syntax" help:"set language grammar/syntax of a draft"`
+	Workspace *WorkspaceCmd `arg:"subcommand:workspace" help:"show current workspace or list all"`
+	Run       *RunCmd       `arg:"subcommand:run" help:"run a Drafts action"`
 	Info    *InfoCmd    `arg:"subcommand:info" help:"show environment info and diagnostics"`
 	Schema  *SchemaCmd  `arg:"subcommand:schema" help:"output tool-use schema for LLM integration"`
 	Upgrade *UpgradeCmd `arg:"subcommand:upgrade" help:"upgrade to the latest version"`
@@ -287,6 +356,14 @@ func main() {
 		output(_select())
 	case args.List != nil:
 		output(list(args.List))
+	case args.Flag != nil:
+		output(flag(args.Flag))
+	case args.Unflag != nil:
+		output(unflag(args.Unflag))
+	case args.Syntax != nil:
+		output(syntax(args.Syntax))
+	case args.Workspace != nil:
+		output(workspace(args.Workspace))
 	case args.Run != nil:
 		output(run(args.Run))
 	case args.Info != nil:
