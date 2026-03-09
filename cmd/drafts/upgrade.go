@@ -13,7 +13,7 @@ const repoOwner = "nerveband"
 const repoName = "drafts-applescript-cli"
 
 // version is set at build time via ldflags
-var version = "3.0.0"
+var version = "3.0.1"
 
 type UpgradeResult struct {
 	Message         string `json:"message"`
