@@ -10,6 +10,8 @@ before:
 builds:
   - id: "drafts"
     dir: "./cmd/drafts"
+    ldflags:
+      - "-s -w -X main.version={{.Version}}"
     goos:
       - "darwin"
 

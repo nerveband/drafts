@@ -28,15 +28,15 @@ const COLORS = {
 // Demo sequences - each shows a different feature
 const SEQUENCES = [
   {
-    command: "drafts list",
+    command: "drafts list --limit 3",
     output: "list",
-    description: "List All Drafts",
+    description: "Summary List Output",
     icon: "[]",
   },
   {
-    command: "drafts new \"New project idea\" -t work",
+    command: "drafts create --input '{\"content\":\"New project idea\",\"tags\":[\"work\"]}'",
     output: "create",
-    description: "Create with Tags",
+    description: "Raw JSON Input",
     icon: "+",
   },
   {
@@ -46,10 +46,10 @@ const SEQUENCES = [
     icon: "{}",
   },
   {
-    command: "drafts list -t work",
-    output: "tags",
-    description: "Filter by Tags",
-    icon: "#",
+    command: "drafts actions -s Copy",
+    output: "actions",
+    description: "Action Discovery",
+    icon: ">",
   },
 ];
 
@@ -146,7 +146,7 @@ export const DraftsCliDemo: React.FC = () => {
           {/* Output - instant appear, no fade */}
           {frameInSequence >= outputDelay && (
             <OutputDisplay
-              type={currentSequence.output as "json" | "list" | "create" | "tags"}
+              type={currentSequence.output as "json" | "list" | "create" | "actions"}
               fadeInProgress={1}
             />
           )}

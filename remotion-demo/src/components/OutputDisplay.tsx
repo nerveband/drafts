@@ -1,7 +1,7 @@
 import React from "react";
 
 interface OutputDisplayProps {
-  type: "json" | "list" | "create" | "tags";
+  type: "json" | "list" | "create" | "actions";
   fadeInProgress: number;
 }
 
@@ -28,7 +28,7 @@ export const OutputDisplay: React.FC<OutputDisplayProps> = ({
       {type === "json" && <JsonOutput />}
       {type === "list" && <ListOutput />}
       {type === "create" && <CreateOutput />}
-      {type === "tags" && <TagsOutput />}
+      {type === "actions" && <ActionsOutput />}
     </div>
   );
 };
@@ -37,16 +37,25 @@ const JsonOutput: React.FC = () => (
   <pre style={{ margin: 0, fontFamily: "inherit", fontSize: 18, lineHeight: 1.5 }}>
     <span style={{ color: COLORS.bracket }}>{"{"}</span>
     {"\n  "}
+    <span style={{ color: COLORS.key }}>"success"</span>
+    <span>: </span>
+    <span>true</span>
+    <span>,</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"data"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n    "}
     <span style={{ color: COLORS.key }}>"uuid"</span>
     <span>: </span>
     <span style={{ color: COLORS.string }}>"574FEA89..."</span>
     <span>,</span>
-    {"\n  "}
+    {"\n    "}
     <span style={{ color: COLORS.key }}>"title"</span>
     <span>: </span>
     <span style={{ color: COLORS.string }}>"Meeting Notes"</span>
     <span>,</span>
-    {"\n  "}
+    {"\n    "}
     <span style={{ color: COLORS.key }}>"tags"</span>
     <span>: </span>
     <span style={{ color: COLORS.bracket }}>{"["}</span>
@@ -54,84 +63,157 @@ const JsonOutput: React.FC = () => (
     <span>, </span>
     <span style={{ color: COLORS.string }}>"important"</span>
     <span style={{ color: COLORS.bracket }}>{"]"}</span>
+    {"\n  "}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
     {"\n"}
     <span style={{ color: COLORS.bracket }}>{"}"}</span>
   </pre>
 );
 
 const ListOutput: React.FC = () => (
-  <div style={{ fontFamily: "inherit", fontSize: 18 }}>
-    <div style={{ color: COLORS.key, marginBottom: 12, fontWeight: 600 }}>
-      {"UUID           TITLE                  FOLDER"}
-    </div>
-    <div style={{ borderTop: "1px solid #444", paddingTop: 12 }}>
-      <div style={{ marginBottom: 8 }}>
-        <span style={{ color: COLORS.string }}>574FEA89...  </span>
-        <span>Weekly meeting notes   </span>
-        <span style={{ color: COLORS.muted }}>inbox</span>
-      </div>
-      <div style={{ marginBottom: 8 }}>
-        <span style={{ color: COLORS.string }}>A1B2C3D4...  </span>
-        <span>Project roadmap        </span>
-        <span style={{ color: COLORS.muted }}>inbox</span>
-      </div>
-      <div style={{ marginBottom: 8 }}>
-        <span style={{ color: COLORS.string }}>E5F67890...  </span>
-        <span>Shopping list          </span>
-        <span style={{ color: COLORS.muted }}>inbox</span>
-      </div>
-    </div>
-    <div style={{ marginTop: 12, color: COLORS.muted, fontSize: 16 }}>
-      3 drafts found
-    </div>
-  </div>
+  <pre style={{ margin: 0, fontFamily: "inherit", fontSize: 18, lineHeight: 1.5 }}>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"success"</span>
+    <span>: </span>
+    <span>true</span>
+    <span>,</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"data"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"drafts"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"["}</span>
+    {"\n      "}
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    <span style={{ color: COLORS.key }}>"uuid"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"574FEA89..."</span>
+    <span>, </span>
+    <span style={{ color: COLORS.key }}>"title"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"Weekly meeting notes"</span>
+    <span>, </span>
+    <span style={{ color: COLORS.key }}>"folder"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"inbox"</span>
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+    <span>,</span>
+    {"\n      "}
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    <span style={{ color: COLORS.key }}>"uuid"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"A1B2C3D4..."</span>
+    <span>, </span>
+    <span style={{ color: COLORS.key }}>"title"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"Project roadmap"</span>
+    <span>, </span>
+    <span style={{ color: COLORS.key }}>"folder"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"inbox"</span>
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+    {"\n    "}
+    <span style={{ color: COLORS.bracket }}>{"]"}</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"count"</span>
+    <span>: </span>
+    <span>2</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"limit"</span>
+    <span>: </span>
+    <span>3</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"full"</span>
+    <span>: </span>
+    <span>false</span>
+    {"\n  "}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+    {"\n"}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+  </pre>
 );
 
 const CreateOutput: React.FC = () => (
-  <div style={{ fontFamily: "inherit", fontSize: 18, lineHeight: 1.5 }}>
-    <div style={{ color: COLORS.success, fontSize: 20, fontWeight: 600, marginBottom: 12 }}>
-      Draft created
-    </div>
-    <pre style={{ margin: 0, fontFamily: "inherit" }}>
-      <span style={{ color: COLORS.bracket }}>{"{"}</span>
-      {"\n  "}
-      <span style={{ color: COLORS.key }}>"uuid"</span>
-      <span>: </span>
-      <span style={{ color: COLORS.string }}>"A1B2C3D4..."</span>
-      <span>,</span>
-      {"\n  "}
-      <span style={{ color: COLORS.key }}>"title"</span>
-      <span>: </span>
-      <span style={{ color: COLORS.string }}>"New project idea"</span>
-      <span>,</span>
-      {"\n  "}
-      <span style={{ color: COLORS.key }}>"tags"</span>
-      <span>: </span>
-      <span style={{ color: COLORS.bracket }}>{"["}</span>
-      <span style={{ color: COLORS.string }}>"work"</span>
-      <span style={{ color: COLORS.bracket }}>{"]"}</span>
-      {"\n"}
-      <span style={{ color: COLORS.bracket }}>{"}"}</span>
-    </pre>
-  </div>
+  <pre style={{ margin: 0, fontFamily: "inherit", fontSize: 18, lineHeight: 1.5 }}>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"success"</span>
+    <span>: </span>
+    <span>true</span>
+    <span>,</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"data"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"uuid"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"A1B2C3D4..."</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"title"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"New project idea"</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"tags"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"["}</span>
+    <span style={{ color: COLORS.string }}>"work"</span>
+    <span style={{ color: COLORS.bracket }}>{"]"}</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"content"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"New project idea"</span>
+    {"\n  "}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+    {"\n"}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+  </pre>
 );
 
-const TagsOutput: React.FC = () => (
-  <div style={{ fontFamily: "inherit", fontSize: 18 }}>
-    <div style={{ marginBottom: 10 }}>
-      <span style={{ color: COLORS.key, width: 120, display: "inline-block" }}>work</span>
-      <span style={{ color: COLORS.muted }}>5 drafts</span>
-    </div>
-    <div style={{ marginBottom: 10 }}>
-      <span style={{ color: COLORS.key, width: 120, display: "inline-block" }}>important</span>
-      <span style={{ color: COLORS.muted }}>3 drafts</span>
-    </div>
-    <div style={{ marginBottom: 10 }}>
-      <span style={{ color: COLORS.key, width: 120, display: "inline-block" }}>ideas</span>
-      <span style={{ color: COLORS.muted }}>8 drafts</span>
-    </div>
-    <div style={{ marginTop: 16, color: COLORS.muted, fontSize: 16 }}>
-      1 draft with tag "work"
-    </div>
-  </div>
+const ActionsOutput: React.FC = () => (
+  <pre style={{ margin: 0, fontFamily: "inherit", fontSize: 18, lineHeight: 1.5 }}>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"success"</span>
+    <span>: </span>
+    <span>true</span>
+    <span>,</span>
+    {"\n  "}
+    <span style={{ color: COLORS.key }}>"data"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"{"}</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"actions"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.bracket }}>{"["}</span>
+    <span style={{ color: COLORS.string }}>"Copy"</span>
+    <span>, </span>
+    <span style={{ color: COLORS.string }}>"Copy Text"</span>
+    <span>, </span>
+    <span style={{ color: COLORS.string }}>"Copy as HTML"</span>
+    <span style={{ color: COLORS.bracket }}>{"]"}</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"count"</span>
+    <span>: </span>
+    <span>3</span>
+    <span>,</span>
+    {"\n    "}
+    <span style={{ color: COLORS.key }}>"search"</span>
+    <span>: </span>
+    <span style={{ color: COLORS.string }}>"Copy"</span>
+    {"\n  "}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+    {"\n"}
+    <span style={{ color: COLORS.bracket }}>{"}"}</span>
+  </pre>
 );

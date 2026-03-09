@@ -13,19 +13,20 @@ const repoOwner = "nerveband"
 const repoName = "drafts-applescript-cli"
 
 // version is set at build time via ldflags
-var version = "2.1.0"
+var version = "3.0.0"
+
+type UpgradeResult struct {
+	Message         string `json:"message"`
+	PreviousVersion string `json:"previousVersion,omitempty"`
+	NewVersion      string `json:"newVersion,omitempty"`
+	LatestVersion   string `json:"latestVersion,omitempty"`
+}
 
 func runUpgrade() interface{} {
-	fmt.Printf("Current version: %s\n", version)
-	fmt.Printf("Checking for updates...\n")
-
 	// Create GitHub source (no auth needed for public repos)
 	source, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
 	if err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("failed to create update source: %v", err),
-		}
+		outputError("PERMISSION_DENIED", fmt.Sprintf("failed to create update source: %v", err), "Check network access and try again")
 	}
 
 	// Create updater with checksum validation
@@ -34,10 +35,7 @@ func runUpgrade() interface{} {
 		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"},
 	})
 	if err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("failed to create updater: %v", err),
-		}
+		outputError("PERMISSION_DENIED", fmt.Sprintf("failed to create updater: %v", err), "Check local filesystem permissions and try again")
 	}
 
 	// Check for latest release
@@ -46,57 +44,38 @@ func runUpgrade() interface{} {
 		selfupdate.NewRepositorySlug(repoOwner, repoName),
 	)
 	if err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("failed to check for updates: %v", err),
-		}
+		outputError("PERMISSION_DENIED", fmt.Sprintf("failed to check for updates: %v", err), "Check network access and the configured GitHub repository")
 	}
 
 	if !found {
-		fmt.Println("No releases found")
-		return map[string]interface{}{
-			"success": true,
-			"message": "No releases found",
-			"version": version,
+		return UpgradeResult{
+			Message:         "No releases found",
+			PreviousVersion: version,
 		}
 	}
 
 	// Compare versions
 	if latest.LessOrEqual(version) {
-		fmt.Printf("Already up to date (latest: %s)\n", latest.Version())
-		return map[string]interface{}{
-			"success":        true,
-			"message":        "Already up to date",
-			"version":        version,
-			"latest_version": latest.Version(),
+		return UpgradeResult{
+			Message:         "Already up to date",
+			PreviousVersion: version,
+			LatestVersion:   latest.Version(),
 		}
 	}
-
-	// Download and install
-	fmt.Printf("New version available: %s\n", latest.Version())
-	fmt.Printf("Downloading for %s/%s...\n", runtime.GOOS, runtime.GOARCH)
 
 	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("failed to get executable path: %v", err),
-		}
+		outputError("PERMISSION_DENIED", fmt.Sprintf("failed to get executable path: %v", err), "Run the installed binary directly from disk and try again")
 	}
 
 	if err := updater.UpdateTo(context.Background(), latest, exe); err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("failed to update: %v", err),
-		}
+		outputError("PERMISSION_DENIED", fmt.Sprintf("failed to update: %v", err), "Check filesystem permissions for the installed binary and try again")
 	}
 
-	fmt.Printf("Successfully upgraded to %s\n", latest.Version())
-	return map[string]interface{}{
-		"success":          true,
-		"message":          "Successfully upgraded",
-		"previous_version": version,
-		"new_version":      latest.Version(),
+	return UpgradeResult{
+		Message:         fmt.Sprintf("Successfully upgraded for %s/%s", runtime.GOOS, runtime.GOARCH),
+		PreviousVersion: version,
+		NewVersion:      latest.Version(),
 	}
 }
 

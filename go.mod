@@ -1,4 +1,4 @@
-module github.com/ernstwi/drafts
+module github.com/nerveband/drafts-applescript-cli
 
 go 1.24.11
 

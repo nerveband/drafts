@@ -7,18 +7,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ernstwi/drafts/pkg/drafts"
+	"github.com/nerveband/drafts-applescript-cli/pkg/drafts"
 )
 
 // InfoResult holds all diagnostic information
 type InfoResult struct {
-	CLI       CLIInfo       `json:"cli"`
-	DraftsApp DraftsAppInfo `json:"drafts_app"`
-	Counts    DraftCounts   `json:"counts"`
-	Actions   []string      `json:"available_actions,omitempty"`
-	Tags      []string      `json:"available_tags,omitempty"`
-	Workspaces []string     `json:"workspaces,omitempty"`
-	Recent    []RecentDraft `json:"recent_drafts,omitempty"`
+	CLI         CLIInfo         `json:"cli"`
+	DraftsApp   DraftsAppInfo   `json:"drafts_app"`
+	Counts      DraftCounts     `json:"counts"`
+	Actions     []string        `json:"available_actions,omitempty"`
+	Tags        []string        `json:"available_tags,omitempty"`
+	Workspaces  []string        `json:"workspaces,omitempty"`
+	Recent      []RecentDraft   `json:"recent_drafts,omitempty"`
 	Permissions *PermissionTest `json:"permissions,omitempty"`
 }
 
@@ -36,11 +36,11 @@ type DraftsAppInfo struct {
 }
 
 type DraftCounts struct {
-	Inbox    int `json:"inbox"`
-	Flagged  int `json:"flagged"`
-	Archive  int `json:"archive"`
-	Trash    int `json:"trash"`
-	All      int `json:"all"`
+	Inbox   int `json:"inbox"`
+	Flagged int `json:"flagged"`
+	Archive int `json:"archive"`
+	Trash   int `json:"trash"`
+	All     int `json:"all"`
 }
 
 type RecentDraft struct {
@@ -90,7 +90,10 @@ func runInfo(param *InfoCmd) interface{} {
 	if param.Verbose {
 		result.Tags = getAvailableTags()
 		result.Actions = getAvailableActions()
-		result.Workspaces = drafts.Workspaces()
+		workspaces, err := drafts.Workspaces()
+		if err == nil {
+			result.Workspaces = workspaces
+		}
 	}
 
 	// Get recent drafts (last 5)
@@ -197,7 +200,7 @@ func getAvailableTags() []string {
 	end if
 	repeat with i from 1 to maxDrafts
 		set d to item i of draftList
-		repeat with t in (tags of d)
+		repeat with t in (tag list of d)
 			if t is not in allTags then
 				set end of allTags to (t as string)
 			end if
@@ -316,13 +319,13 @@ func testPermissions() *PermissionTest {
 	result := &PermissionTest{}
 
 	// Test read permission
-	testDrafts := drafts.Query("", drafts.FilterInbox, drafts.QueryOptions{})
-	if len(testDrafts) > 0 {
+	testDrafts, err := drafts.Query("", drafts.FilterInbox, drafts.QueryOptions{})
+	if err == nil && len(testDrafts) > 0 {
 		result.Read = PermissionResult{Allowed: true, Message: "Can read drafts"}
 	} else {
 		// Could be empty or error - try to get active
-		active := drafts.Active()
-		if active != "" {
+		active, err := drafts.Active()
+		if err == nil && active != "" {
 			result.Read = PermissionResult{Allowed: true, Message: "Can read drafts (inbox empty)"}
 		} else {
 			result.Read = PermissionResult{Allowed: false, Message: "Cannot read drafts - check Drafts Pro status"}
@@ -330,11 +333,11 @@ func testPermissions() *PermissionTest {
 	}
 
 	// Test write permission - create and immediately trash a test draft
-	testUUID := drafts.Create("__drafts_cli_permission_test__", drafts.CreateOptions{})
-	if testUUID != "" {
+	testUUID, err := drafts.Create("__drafts_cli_permission_test__", drafts.CreateOptions{})
+	if err == nil && testUUID != "" {
 		result.Write = PermissionResult{Allowed: true, Message: "Can create drafts"}
 		// Clean up - trash the test draft
-		drafts.Trash(testUUID)
+		_ = drafts.Trash(testUUID)
 	} else {
 		result.Write = PermissionResult{Allowed: false, Message: "Cannot create drafts"}
 	}

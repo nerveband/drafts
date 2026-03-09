@@ -2,14 +2,18 @@ package drafts
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 )
 
-// ---- Writing drafts ---------------------------------------------------------
+const tagSeparator = "|||"
+
+type ActionRunResult struct {
+	UUID         string `json:"uuid"`
+	CreatedDraft bool   `json:"createdDraft"`
+}
 
 // Create a new draft. Return new draft's UUID.
-func Create(text string, opt CreateOptions) string {
+func Create(text string, opt CreateOptions) (string, error) {
 	folder := "inbox"
 	if opt.Folder == FolderArchive {
 		folder = "archive"
@@ -21,110 +25,188 @@ func Create(text string, opt CreateOptions) string {
 	}
 
 	script := fmt.Sprintf(`tell application "Drafts"
-	set d to make new draft with properties {content:"%s", flagged:%s, tags:%s}
+	set d to make new draft with properties {content:"%s", flagged:%s, tag list:%s}
 	set folder of d to %s
 	return id of d
 end tell`, escapeForAppleScript(text), flaggedStr, tagsToAppleScript(opt.Tags), folder)
 
 	uuid, err := runAppleScript(script)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	if opt.Action != "" {
-		RunActionOnDraft(opt.Action, uuid)
+		if err := RunActionOnDraft(opt.Action, uuid); err != nil {
+			return uuid, err
+		}
 	}
 
-	return uuid
+	return uuid, nil
 }
 
 // Prepend to an existing draft.
-func Prepend(uuid, text string, opt ModifyOptions) {
+func Prepend(uuid, text string, opt ModifyOptions) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set content of d to "%s" & linefeed & (content of d)
 end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
 
-	runAppleScript(script)
+	if _, err := runAppleScript(script); err != nil {
+		return err
+	}
 
 	if len(opt.Tags) > 0 {
-		Tag(uuid, opt.Tags...)
+		if err := Tag(uuid, opt.Tags...); err != nil {
+			return err
+		}
 	}
 	if opt.Action != "" {
-		RunActionOnDraft(opt.Action, uuid)
+		if err := RunActionOnDraft(opt.Action, uuid); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Append to an existing draft.
-func Append(uuid, text string, opt ModifyOptions) {
+func Append(uuid, text string, opt ModifyOptions) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set content of d to (content of d) & linefeed & "%s"
 end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
 
-	runAppleScript(script)
+	if _, err := runAppleScript(script); err != nil {
+		return err
+	}
 
 	if len(opt.Tags) > 0 {
-		Tag(uuid, opt.Tags...)
+		if err := Tag(uuid, opt.Tags...); err != nil {
+			return err
+		}
 	}
 	if opt.Action != "" {
-		RunActionOnDraft(opt.Action, uuid)
+		if err := RunActionOnDraft(opt.Action, uuid); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Replace content of an existing draft.
-func Replace(uuid, text string) {
+func Replace(uuid, text string) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set content of d to "%s"
 end tell`, escapeForAppleScript(uuid), escapeForAppleScript(text))
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
 
 // Trash a draft.
-func Trash(uuid string) {
+func Trash(uuid string) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set folder of d to trash
 end tell`, escapeForAppleScript(uuid))
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
 
 // Archive a draft.
-func Archive(uuid string) {
+func Archive(uuid string) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set folder of d to archive
 end tell`, escapeForAppleScript(uuid))
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
 
 // Tag adds tags to a draft.
-func Tag(uuid string, tags ...string) {
+func Tag(uuid string, tags ...string) error {
 	if len(tags) == 0 {
-		return
+		return nil
+	}
+
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
 	}
 
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
-	set existingTags to tags of d
+	set existingTags to tag list of d
 	set newTags to %s
 	repeat with t in newTags
 		if t is not in existingTags then
 			set end of existingTags to t
 		end if
 	end repeat
-	set tags of d to existingTags
+	set tag list of d to existingTags
 end tell`, escapeForAppleScript(uuid), tagsToAppleScript(tags))
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
 
 // SetFlagged sets the flagged status of a draft.
-func SetFlagged(uuid string, flagged bool) {
+func SetFlagged(uuid string, flagged bool) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	flaggedStr := "false"
 	if flagged {
 		flaggedStr = "true"
@@ -134,23 +216,20 @@ func SetFlagged(uuid string, flagged bool) {
 	set flagged of d to %s
 end tell`, escapeForAppleScript(uuid), flaggedStr)
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
-
-// SetLanguageGrammar sets the syntax highlighting language of a draft.
-func SetLanguageGrammar(uuid, grammar string) {
-	script := fmt.Sprintf(`tell application "Drafts"
-	set d to draft id "%s"
-	set languageGrammar of d to "%s"
-end tell`, escapeForAppleScript(uuid), escapeForAppleScript(grammar))
-
-	runAppleScript(script)
-}
-
-// ---- Reading drafts ---------------------------------------------------------
 
 // Get content of draft.
-func Get(uuid string) Draft {
+func Get(uuid string) (Draft, error) {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return Draft{}, err
+	}
+	if !exists {
+		return Draft{}, fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	set folder_name to folder of d as string
@@ -161,7 +240,7 @@ func Get(uuid string) Draft {
 	else if folder_name is "trash" then
 		set is_trashed to true
 	end if
-	set tag_list to tags of d
+	set tag_list to tag list of d
 	set tag_str to ""
 	repeat with t in tag_list
 		if tag_str is not "" then
@@ -169,18 +248,18 @@ func Get(uuid string) Draft {
 		end if
 		set tag_str to tag_str & t
 	end repeat
-	return (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
+	return (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
 end tell`, escapeForAppleScript(uuid))
 
 	output, err := runAppleScript(script)
 	if err != nil {
-		return Draft{}
+		return Draft{}, err
 	}
 
-	return parseDraftFromAppleScript(output)
+	return parseDraftFromAppleScript(output), nil
 }
 
-// parseDraftFromAppleScript parses tab-separated AppleScript output into a Draft
+// parseDraftFromAppleScript parses tab-separated AppleScript output into a Draft.
 func parseDraftFromAppleScript(output string) Draft {
 	parts := strings.Split(output, "\t")
 	if len(parts) < 11 {
@@ -189,7 +268,7 @@ func parseDraftFromAppleScript(output string) Draft {
 
 	tags := []string{}
 	if parts[7] != "" {
-		tags = strings.Split(parts[7], "|||")
+		tags = strings.Split(parts[7], tagSeparator)
 	}
 
 	d := Draft{
@@ -206,58 +285,33 @@ func parseDraftFromAppleScript(output string) Draft {
 		Permalink:  parts[10],
 	}
 
-	// Parse new fields (backward-compatible: only if present)
 	if len(parts) > 11 {
-		d.LanguageGrammar = parts[11]
+		fmt.Sscanf(parts[11], "%f", &d.CreatedLatitude)
 	}
 	if len(parts) > 12 {
-		fmt.Sscanf(parts[12], "%f", &d.CreatedLatitude)
+		fmt.Sscanf(parts[12], "%f", &d.CreatedLongitude)
 	}
 	if len(parts) > 13 {
-		fmt.Sscanf(parts[13], "%f", &d.CreatedLongitude)
+		fmt.Sscanf(parts[13], "%f", &d.ModifiedLatitude)
 	}
 	if len(parts) > 14 {
-		fmt.Sscanf(parts[14], "%f", &d.ModifiedLatitude)
-	}
-	if len(parts) > 15 {
-		fmt.Sscanf(parts[15], "%f", &d.ModifiedLongitude)
+		fmt.Sscanf(parts[14], "%f", &d.ModifiedLongitude)
 	}
 
 	return d
 }
 
 // Query for drafts.
-func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
-	// Build filter clauses for the AppleScript "whose" clause
-	var filterClauses []string
+func Query(queryString string, filter Filter, opt QueryOptions) ([]Draft, error) {
+	return queryDrafts("every draft", queryString, filter, opt)
+}
 
-	switch filter {
-	case FilterArchive:
-		filterClauses = append(filterClauses, "folder is archive")
-	case FilterTrash:
-		filterClauses = append(filterClauses, "folder is trash")
-	case FilterFlagged:
-		filterClauses = append(filterClauses, "folder is inbox", "flagged is true")
-	case FilterAll:
-		// No folder filter
-	default: // FilterInbox
-		filterClauses = append(filterClauses, "folder is inbox")
-	}
-
-	// Content search at AppleScript level
-	if queryString != "" {
-		filterClauses = append(filterClauses, fmt.Sprintf(`content contains "%s"`, escapeForAppleScript(queryString)))
-	}
-
-	// Build the whose clause
-	whereClause := ""
-	if len(filterClauses) > 0 {
-		whereClause = "whose " + strings.Join(filterClauses, " and ")
-	}
+func queryDrafts(scope, queryString string, filter Filter, opt QueryOptions) ([]Draft, error) {
+	whereClause := buildWhereClause(filter, queryString, opt)
 
 	script := fmt.Sprintf(`tell application "Drafts"
 	set output to ""
-	set allDrafts to every draft %s
+	set allDrafts to %s%s
 	repeat with d in allDrafts
 		set folder_name to folder of d as string
 		set is_archived to false
@@ -267,7 +321,7 @@ func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
 		else if folder_name is "trash" then
 			set is_trashed to true
 		end if
-		set tag_list to tags of d
+		set tag_list to tag list of d
 		set tag_str to ""
 		repeat with t in tag_list
 			if tag_str is not "" then
@@ -275,7 +329,7 @@ func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
 			end if
 			set tag_str to tag_str & t
 		end repeat
-		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
+		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
 		if output is "" then
 			set output to line_out
 		else
@@ -283,15 +337,15 @@ func Query(queryString string, filter Filter, opt QueryOptions) []Draft {
 		end if
 	end repeat
 	return output
-end tell`, whereClause)
+end tell`, scope, whereClause)
 
 	output, err := runAppleScript(script)
 	if err != nil {
-		return []Draft{}
+		return []Draft{}, err
 	}
 
 	if output == "" {
-		return []Draft{}
+		return []Draft{}, nil
 	}
 
 	lines := strings.Split(output, "\n")
@@ -300,180 +354,152 @@ end tell`, whereClause)
 		if line != "" {
 			d := parseDraftFromAppleScript(line)
 			if d.UUID != "" {
-				if len(opt.Tags) > 0 && !hasAllTags(d.Tags, opt.Tags) {
-					continue
-				}
-				if len(opt.OmitTags) > 0 && hasAnyTag(d.Tags, opt.OmitTags) {
-					continue
-				}
 				drafts = append(drafts, d)
 			}
 		}
 	}
 
-	return drafts
+	return applyQuerySorting(drafts, opt), nil
 }
 
-func hasAllTags(draftTags, requiredTags []string) bool {
-	tagSet := make(map[string]bool)
-	for _, t := range draftTags {
-		tagSet[t] = true
-	}
-	for _, t := range requiredTags {
-		if !tagSet[t] {
-			return false
-		}
-	}
-	return true
-}
+func buildWhereClause(filter Filter, queryString string, opt QueryOptions) string {
+	var clauses []string
 
-func hasAnyTag(draftTags, excludeTags []string) bool {
-	tagSet := make(map[string]bool)
-	for _, t := range draftTags {
-		tagSet[t] = true
+	switch filter {
+	case FilterArchive:
+		clauses = append(clauses, "folder is archive")
+	case FilterTrash:
+		clauses = append(clauses, "folder is trash")
+	case FilterFlagged:
+		clauses = append(clauses, "folder is inbox", "flagged is true")
+	case FilterAll:
+	default:
+		clauses = append(clauses, "folder is inbox")
 	}
-	for _, t := range excludeTags {
-		if tagSet[t] {
-			return true
-		}
-	}
-	return false
-}
 
-// ---- App state --------------------------------------------------------------
+	if queryString != "" {
+		clauses = append(clauses, fmt.Sprintf(`content contains "%s"`, escapeForAppleScript(queryString)))
+	}
+
+	for _, tag := range opt.Tags {
+		clauses = append(clauses, fmt.Sprintf(`query tag names contains "#%s#"`, escapeForAppleScript(tag)))
+	}
+
+	for _, tag := range opt.OmitTags {
+		clauses = append(clauses, fmt.Sprintf(`query tag names does not contain "#%s#"`, escapeForAppleScript(tag)))
+	}
+
+	if len(clauses) == 0 {
+		return ""
+	}
+
+	return " whose " + strings.Join(clauses, " and ")
+}
 
 // Select sets the active draft.
-func Select(uuid string) {
+func Select(uuid string) error {
+	exists, err := DraftExists(uuid)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrDraftNotFound, uuid)
+	}
+
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to draft id "%s"
 	open d
+	delay 0.1
 end tell`, escapeForAppleScript(uuid))
 
-	runAppleScript(script)
+	_, err = runAppleScript(script)
+	return err
 }
 
 // Active returns the UUID of the active draft.
-func Active() string {
+func Active() (string, error) {
 	script := `tell application "Drafts"
 	return id of current draft
 end tell`
 
-	uuid, err := runAppleScript(script)
-	if err != nil {
-		return ""
-	}
-	return uuid
+	return runAppleScript(script)
 }
 
-// ---- Actions ----------------------------------------------------------------
+// RunAction runs an action with text, creating a transient draft for execution.
+func RunAction(action, text string) (ActionRunResult, error) {
+	exists, err := ActionExists(action)
+	if err != nil {
+		return ActionRunResult{}, err
+	}
+	if !exists {
+		return ActionRunResult{}, fmt.Errorf("%w: %s", ErrActionNotFound, action)
+	}
 
-// RunAction runs an action with text (creates temp draft, runs action).
-func RunAction(action, text string) url.Values {
 	script := fmt.Sprintf(`tell application "Drafts"
 	set d to make new draft with properties {content:"%s"}
-	set actionToRun to missing value
-	repeat with a in (every action)
-		if name of a is "%s" then
-			set actionToRun to a
-			exit repeat
-		end if
-	end repeat
-	if actionToRun is not missing value then
-		perform action actionToRun on draft d
-	end if
+	set actionToRun to action "%s"
+	perform action actionToRun on draft d
 	return id of d
 end tell`, escapeForAppleScript(text), escapeForAppleScript(action))
 
-	uuid, _ := runAppleScript(script)
+	uuid, err := runAppleScript(script)
+	if err != nil {
+		return ActionRunResult{}, err
+	}
 
-	result := url.Values{}
-	result.Set("uuid", uuid)
-	return result
+	return ActionRunResult{
+		UUID:         uuid,
+		CreatedDraft: true,
+	}, nil
 }
 
-// ---- Workspaces -------------------------------------------------------------
-
 // QueryWorkspace returns drafts from a specific workspace.
-func QueryWorkspace(workspace string, filter Filter, opt QueryOptions) []Draft {
+func QueryWorkspace(workspace, queryString string, filter Filter, opt QueryOptions) ([]Draft, error) {
 	if workspace == "" {
-		return []Draft{}
+		return []Draft{}, nil
 	}
 
-	script := fmt.Sprintf(`tell application "Drafts"
-	set output to ""
-	set ws to workspace "%s"
-	set allDrafts to every draft of ws
-	repeat with d in allDrafts
-		set folder_name to folder of d as string
-		set is_archived to false
-		set is_trashed to false
-		if folder_name is "archive" then
-			set is_archived to true
-		else if folder_name is "trash" then
-			set is_trashed to true
-		end if
-		set tag_list to tags of d
-		set tag_str to ""
-		repeat with t in tag_list
-			if tag_str is not "" then
-				set tag_str to tag_str & "|||"
-			end if
-			set tag_str to tag_str & t
-		end repeat
-		set line_out to (id of d) & "	" & (title of d) & "	" & (content of d) & "	" & folder_name & "	" & (flagged of d) & "	" & is_archived & "	" & is_trashed & "	" & tag_str & "	" & ((creation date of d) as string) & "	" & ((modification date of d) as string) & "	" & (permalink of d) & "	" & "" & "	" & ((creation latitude of d) as string) & "	" & ((creation longitude of d) as string) & "	" & ((modification latitude of d) as string) & "	" & ((modification longitude of d) as string)
-		if output is "" then
-			set output to line_out
-		else
-			set output to output & linefeed & line_out
-		end if
-	end repeat
-	return output
-end tell`, escapeForAppleScript(workspace))
-
-	output, err := runAppleScript(script)
+	exists, err := WorkspaceExists(workspace)
 	if err != nil {
-		return []Draft{}
+		return []Draft{}, err
+	}
+	if !exists {
+		return []Draft{}, fmt.Errorf("%w: %s", ErrWorkspaceNotFound, workspace)
 	}
 
-	if output == "" {
-		return []Draft{}
-	}
-
-	lines := strings.Split(output, "\n")
-	results := make([]Draft, 0, len(lines))
-	for _, line := range lines {
-		if line != "" {
-			d := parseDraftFromAppleScript(line)
-			if d.UUID != "" {
-				if len(opt.Tags) > 0 && !hasAllTags(d.Tags, opt.Tags) {
-					continue
-				}
-				if len(opt.OmitTags) > 0 && hasAnyTag(d.Tags, opt.OmitTags) {
-					continue
-				}
-				results = append(results, d)
-			}
-		}
-	}
-
-	return results
+	scope := fmt.Sprintf(`every draft of workspace "%s"`, escapeForAppleScript(workspace))
+	return queryDrafts(scope, queryString, filter, opt)
 }
 
 // CurrentWorkspace returns the name of the current workspace.
-func CurrentWorkspace() string {
+func CurrentWorkspace() (string, error) {
 	script := `tell application "Drafts"
 	return name of current workspace
 end tell`
 
-	name, err := runAppleScript(script)
+	return runAppleScript(script)
+}
+
+// OpenWorkspace opens a workspace by name.
+func OpenWorkspace(name string) error {
+	exists, err := WorkspaceExists(name)
 	if err != nil {
-		return ""
+		return err
 	}
-	return name
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrWorkspaceNotFound, name)
+	}
+
+	script := fmt.Sprintf(`tell application "Drafts"
+	open workspace "%s"
+end tell`, escapeForAppleScript(name))
+
+	_, err = runAppleScript(script)
+	return err
 }
 
 // Workspaces returns the names of all workspaces.
-func Workspaces() []string {
+func Workspaces() ([]string, error) {
 	script := `tell application "Drafts"
 	set wsNames to {}
 	repeat with w in (every workspace)
@@ -492,7 +518,40 @@ end tell`
 
 	output, err := runAppleScript(script)
 	if err != nil || output == "" {
-		return []string{}
+		return []string{}, err
 	}
-	return strings.Split(output, "|||")
+	return strings.Split(output, tagSeparator), nil
+}
+
+func applyQuerySorting(items []Draft, opt QueryOptions) []Draft {
+	if len(items) < 2 {
+		return items
+	}
+
+	// Drafts returns newest-first from AppleScript queries. Normalize to
+	// oldest-first so the CLI contract is deterministic unless descending is requested.
+	reverseDrafts(items)
+	if opt.SortDescending {
+		reverseDrafts(items)
+	}
+	if opt.SortFlaggedToTop {
+		flagged := make([]Draft, 0, len(items))
+		others := make([]Draft, 0, len(items))
+		for _, item := range items {
+			if item.IsFlagged {
+				flagged = append(flagged, item)
+			} else {
+				others = append(others, item)
+			}
+		}
+		return append(flagged, others...)
+	}
+
+	return items
+}
+
+func reverseDrafts(items []Draft) {
+	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+		items[i], items[j] = items[j], items[i]
+	}
 }

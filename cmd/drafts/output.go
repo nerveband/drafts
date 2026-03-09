@@ -22,12 +22,15 @@ type ErrorInfo struct {
 
 // Error codes and their documentation URLs
 var errorDocs = map[string]string{
-	"DRAFT_NOT_FOUND":    "https://github.com/nerveband/drafts-applescript-cli#get",
-	"UNKNOWN_COMMAND":    "https://github.com/nerveband/drafts-applescript-cli#usage",
-	"DRAFTS_NOT_RUNNING": "https://github.com/nerveband/drafts-applescript-cli#troubleshooting",
-	"PERMISSION_DENIED":  "https://github.com/nerveband/drafts-applescript-cli#troubleshooting",
-	"ACTION_NOT_FOUND":   "https://github.com/nerveband/drafts-applescript-cli#run",
-	"PRO_REQUIRED":       "https://github.com/nerveband/drafts-applescript-cli#requirements",
+	"DRAFT_NOT_FOUND":     "https://github.com/nerveband/drafts-applescript-cli#get",
+	"UNKNOWN_COMMAND":     "https://github.com/nerveband/drafts-applescript-cli#usage",
+	"DRAFTS_NOT_RUNNING":  "https://github.com/nerveband/drafts-applescript-cli#troubleshooting",
+	"PERMISSION_DENIED":   "https://github.com/nerveband/drafts-applescript-cli#troubleshooting",
+	"ACTION_NOT_FOUND":    "https://github.com/nerveband/drafts-applescript-cli#run",
+	"WORKSPACE_NOT_FOUND": "https://github.com/nerveband/drafts-applescript-cli#workspace",
+	"INVALID_INPUT":       "https://github.com/nerveband/drafts-applescript-cli#usage",
+	"INVALID_FILTER":      "https://github.com/nerveband/drafts-applescript-cli#list",
+	"PRO_REQUIRED":        "https://github.com/nerveband/drafts-applescript-cli#requirements",
 }
 
 // Global flag for plain output

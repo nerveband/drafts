@@ -3,22 +3,21 @@ package drafts
 const Separator = '|'
 
 type Draft struct {
-	UUID       string   `json:"uuid"`
-	Content    string   `json:"content"`
-	Title      string   `json:"title"`
-	Tags       []string `json:"tags"`
-	IsFlagged  bool     `json:"isFlagged"`
-	IsArchived bool     `json:"isArchived"`
-	IsTrashed  bool     `json:"isTrashed"`
-	Folder          string   `json:"folder"`
-	LanguageGrammar string   `json:"languageGrammar"`
-	CreatedAt       string   `json:"createdAt"`
-	ModifiedAt      string   `json:"modifiedAt"`
-	CreatedLatitude  float64 `json:"createdLatitude"`
-	CreatedLongitude float64 `json:"createdLongitude"`
-	ModifiedLatitude  float64 `json:"modifiedLatitude"`
-	ModifiedLongitude float64 `json:"modifiedLongitude"`
-	Permalink       string   `json:"permalink"`
+	UUID              string   `json:"uuid"`
+	Content           string   `json:"content"`
+	Title             string   `json:"title"`
+	Tags              []string `json:"tags"`
+	IsFlagged         bool     `json:"isFlagged"`
+	IsArchived        bool     `json:"isArchived"`
+	IsTrashed         bool     `json:"isTrashed"`
+	Folder            string   `json:"folder"`
+	CreatedAt         string   `json:"createdAt"`
+	ModifiedAt        string   `json:"modifiedAt"`
+	CreatedLatitude   float64  `json:"createdLatitude"`
+	CreatedLongitude  float64  `json:"createdLongitude"`
+	ModifiedLatitude  float64  `json:"modifiedLatitude"`
+	ModifiedLongitude float64  `json:"modifiedLongitude"`
+	Permalink         string   `json:"permalink"`
 }
 
 // ---- Enums ------------------------------------------------------------------

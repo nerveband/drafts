@@ -1,7 +1,7 @@
 # Drafts AppleScript CLI
 
 <p align="center">
-  <img src="drafts-cli-demo.gif" alt="Drafts CLI Demo" width="800">
+  <img src="assets/drafts-cli-overview.svg" alt="Drafts CLI Overview" width="900">
 </p>
 
 Command line interface for [Drafts](https://getdrafts.com) on macOS.
@@ -30,19 +30,21 @@ The CLI communicates with Drafts via AppleScript (`osascript`). This means:
 - Commands execute in the context of the running Drafts app
 - All data stays local on your Mac
 
+The exposed command surface is intentionally limited to what the live Drafts AppleScript dictionary actually supports. Draft syntax/language grammar is not part of the AppleScript dictionary, so it is not surfaced by this CLI.
+
 ## Install
 
 ### Option 1: Go Install
 
 ```bash
-go install github.com/nerveband/drafts/cmd/drafts@latest
+go install github.com/nerveband/drafts-applescript-cli/cmd/drafts@latest
 ```
 
 ### Option 2: Build from Source
 
 ```bash
-git clone https://github.com/nerveband/drafts
-cd drafts
+git clone https://github.com/nerveband/drafts-applescript-cli
+cd drafts-applescript-cli
 go build ./cmd/drafts
 
 # Optionally move to PATH
@@ -51,7 +53,7 @@ mv drafts /usr/local/bin/
 
 ### Option 3: Download Binary
 
-Download from [Releases](https://github.com/nerveband/drafts/releases) (macOS only).
+Download from [Releases](https://github.com/nerveband/drafts-applescript-cli/releases) (macOS only).
 
 ## Quick Start
 
@@ -84,7 +86,8 @@ Options:
   --help, -h           display this help and exit
 
 Commands:
-  new, create          create new draft
+  new                  create new draft
+  create               create new draft (alias for 'new')
   prepend              prepend to draft
   append               append to draft
   replace              replace content of draft
@@ -94,8 +97,8 @@ Commands:
   list                 list drafts
   flag                 flag a draft
   unflag               unflag a draft
-  syntax               set language grammar/syntax
-  workspace            show/list workspaces
+  workspace            show, list, or open workspaces
+  actions              list available actions
   run                  run a Drafts action
   info                 show environment info and diagnostics
   schema               output tool-use schema for LLM integration
@@ -122,6 +125,7 @@ Options:
   -a, --archive        Create in archive folder
   -f, --flagged        Create as flagged
   --action ACTION      Run action after creation
+  --input JSON         Raw JSON payload; use '-' to read from stdin
 ```
 
 **Examples:**
@@ -129,6 +133,7 @@ Options:
 drafts create "Meeting notes"
 drafts create "Shopping list" -t groceries -t todo
 drafts create "Important!" -f
+drafts create --input '{"content":"Ship types, not docs","tags":["ideas","cli"]}'
 ```
 
 ### get
@@ -151,7 +156,11 @@ Options:
   -t, --tag TAG        Filter by tag (can be used multiple times)
   -s, --search TEXT    Search draft content
   -w, --workspace NAME Filter by workspace name
+  --limit N            Maximum drafts to return (default: 20, use 0 for all)
+  --full               Include full content and location fields
 ```
+
+`drafts list` now returns token-cheaper summaries by default. Use `--full` when you actually need the full draft body and location fields.
 
 **Examples:**
 ```bash
@@ -160,6 +169,8 @@ drafts list -f archive         # List archived
 drafts list -t work            # Filter by tag
 drafts list -s "meeting"       # Search content
 drafts list -w "My Workspace"  # Filter by workspace
+drafts list --limit 5          # Cap result size
+drafts list --full -t work     # Include full content
 ```
 
 ### flag / unflag
@@ -171,22 +182,23 @@ drafts flag [UUID]             # Flag (omit UUID for active draft)
 drafts unflag [UUID]           # Unflag (omit UUID for active draft)
 ```
 
-### syntax
-
-Set the language grammar / syntax highlighting of a draft.
-
-```bash
-drafts syntax "JavaScript" [-u UUID]
-drafts syntax "Markdown"       # Set on active draft
-```
-
 ### workspace
 
-Show current workspace or list all workspaces.
+Show current workspace, list all workspaces, or open one by name.
 
 ```bash
 drafts workspace               # Show current workspace
 drafts workspace --list        # List all workspaces
+drafts workspace --open Ideas  # Open a workspace by name
+```
+
+### actions
+
+List available Drafts actions.
+
+```bash
+drafts actions
+drafts actions -s Copy
 ```
 
 ### prepend / append
@@ -201,6 +213,7 @@ Options:
   -u, --uuid UUID      Target draft UUID (omit to use active draft)
   -t, --tag TAG        Add tag
   --action ACTION      Run action after modification
+  --input JSON         Raw JSON payload; use '-' to read from stdin
 ```
 
 ### replace
@@ -209,6 +222,7 @@ Replace entire content of a draft.
 
 ```bash
 drafts replace "New content" -u UUID
+drafts replace --input '{"uuid":"<uuid>","content":"New content"}'
 ```
 
 ### edit
@@ -226,6 +240,7 @@ Run a Drafts action.
 ```bash
 drafts run "Action Name" "Text to process"
 drafts run "Action Name" -u UUID    # Run on existing draft
+drafts run --input '{"action":"Copy","uuid":"<uuid>"}'
 ```
 
 ### info
@@ -299,6 +314,8 @@ drafts version         # Display current version
 }
 ```
 
+For `drafts list`, the default JSON omits `content` and location fields unless you pass `--full`.
+
 **Plain text** - Human-readable output:
 ```bash
 drafts list --plain
@@ -310,8 +327,9 @@ This CLI is designed for LLM tool use:
 
 - **JSON output by default** - Easy to parse
 - **Structured errors** - Error code, message, and recovery hints
-- **Tool-use schema** - Get schema with `drafts schema`
-- **Full metadata** - All draft properties returned
+- **Typed command schema** - Get schema with `drafts schema`
+- **Raw JSON input** - Mutating commands accept `--input`
+- **Smaller default reads** - `drafts list` returns summaries unless `--full`
 - **Self-diagnostics** - `drafts info` shows environment status
 - **Auto-update notifications** - CLI notifies when updates available
 
@@ -359,7 +377,10 @@ drafts version
 | `DRAFT_NOT_FOUND` | UUID doesn't match any draft | Use `drafts list` to find valid UUIDs |
 | `DRAFTS_NOT_RUNNING` | Drafts.app not running | Run `open -a Drafts` |
 | `PERMISSION_DENIED` | Automation permission denied | Check System Settings > Privacy > Automation |
-| `ACTION_NOT_FOUND` | Named action doesn't exist | Use `drafts info --verbose` to list actions |
+| `ACTION_NOT_FOUND` | Named action doesn't exist | Use `drafts actions` to list actions |
+| `WORKSPACE_NOT_FOUND` | Named workspace doesn't exist | Use `drafts workspace --list` |
+| `INVALID_INPUT` | Mixed or malformed raw input | Check `drafts schema <command>` or `--help` |
+| `INVALID_FILTER` | Unsupported list filter | Use one of `inbox`, `flagged`, `archive`, `trash`, `all` |
 | `PRO_REQUIRED` | Feature requires Drafts Pro | Subscribe to Drafts Pro |
 
 ### AI Agent Skill

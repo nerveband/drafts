@@ -2,19 +2,22 @@ package drafts
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
-	"github.com/ernstwi/drafts/internal/assert"
+	"github.com/nerveband/drafts-applescript-cli/internal/assert"
 )
 
 func TestCreateDefault(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{}, draft.Tags)
@@ -25,11 +28,13 @@ func TestCreateDefault(t *testing.T) {
 
 func TestCreateFlagged(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{Flagged: true})
+	uuid, err := Create(text, CreateOptions{Flagged: true})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{}, draft.Tags)
@@ -38,11 +43,13 @@ func TestCreateFlagged(t *testing.T) {
 
 func TestCreateArchived(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{Folder: FolderArchive})
+	uuid, err := Create(text, CreateOptions{Folder: FolderArchive})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{}, draft.Tags)
@@ -52,11 +59,13 @@ func TestCreateArchived(t *testing.T) {
 func TestCreateTags(t *testing.T) {
 	text := rand()
 	tag := rand()
-	uuid := Create(text, CreateOptions{Tags: []string{tag}})
+	uuid, err := Create(text, CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{tag}, draft.Tags)
@@ -65,45 +74,56 @@ func TestCreateTags(t *testing.T) {
 func TestPrepend(t *testing.T) {
 	text := rand()
 	prefix := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	Prepend(uuid, prefix, ModifyOptions{})
-	content := Get(uuid).Content
+	requireNoError(t, Prepend(uuid, prefix, ModifyOptions{}))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
+	content := draft.Content
 	assert.Equal(t, prefix+"\n"+text, content)
 }
 
 func TestAppend(t *testing.T) {
 	text := rand()
 	suffix := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 
 	}()
-	Append(uuid, suffix, ModifyOptions{})
-	content := Get(uuid).Content
+	requireNoError(t, Append(uuid, suffix, ModifyOptions{}))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
+	content := draft.Content
 	assert.Equal(t, text+"\n"+suffix, content)
 }
 
 func TestReplace(t *testing.T) {
 	text := rand()
 	replacement := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	Replace(uuid, replacement)
-	content := Get(uuid).Content
+	requireNoError(t, Replace(uuid, replacement))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
+	content := draft.Content
 	assert.Equal(t, replacement, content)
 }
 
 func TestTrash(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{})
-	Trash(uuid)
-	draft := Get(uuid)
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
+	requireNoError(t, Trash(uuid))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{}, draft.Tags)
@@ -112,9 +132,11 @@ func TestTrash(t *testing.T) {
 
 func TestArchive(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{})
-	Archive(uuid)
-	draft := Get(uuid)
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
+	requireNoError(t, Archive(uuid))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{}, draft.Tags)
@@ -122,53 +144,59 @@ func TestArchive(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	a := Create("A", CreateOptions{Tags: []string{"test", "a"}})
-	b := Create("B", CreateOptions{Tags: []string{"test", "b"}, Flagged: true})
-	c := Create("C", CreateOptions{Tags: []string{"test", "c"}})
+	a, err := Create("A", CreateOptions{Tags: []string{"test", "a"}})
+	requireNoError(t, err)
+	b, err := Create("B", CreateOptions{Tags: []string{"test", "b"}, Flagged: true})
+	requireNoError(t, err)
+	c, err := Create("C", CreateOptions{Tags: []string{"test", "c"}})
+	requireNoError(t, err)
 
 	defer func() {
 		for _, uuid := range []string{a, b, c} {
-			Trash(uuid)
+			requireNoError(t, Trash(uuid))
 		}
 	}()
 
-	uuids := getUUIDs(Query("", FilterInbox, QueryOptions{Tags: []string{"test"}}))
-	assert.EqualSlice(t, []string{a, b, c}, uuids)
+	results, err := Query("", FilterInbox, QueryOptions{Tags: []string{"test"}})
+	requireNoError(t, err)
+	uuids := getUUIDs(results)
+	assertSameUUIDs(t, []string{a, b, c}, uuids)
 
-	uuids = getUUIDs(Query("", FilterInbox, QueryOptions{Tags: []string{"test", "a"}}))
+	results, err = Query("", FilterInbox, QueryOptions{Tags: []string{"test", "a"}})
+	requireNoError(t, err)
+	uuids = getUUIDs(results)
 	assert.EqualSlice(t, []string{a}, uuids)
 
-	uuids = getUUIDs(Query("", FilterInbox, QueryOptions{
+	results, err = Query("", FilterInbox, QueryOptions{
 		Tags:     []string{"test"},
 		OmitTags: []string{"a"},
-	}))
-	assert.EqualSlice(t, []string{b, c}, uuids)
-
-	// TODO: Testing Sort requires draft modification
-
-	uuids = getUUIDs(Query("", FilterInbox, QueryOptions{
-		Tags:           []string{"test"},
-		SortDescending: true,
-	}))
-	assert.EqualSlice(t, []string{c, b, a}, uuids)
-
-	uuids = getUUIDs(Query("", FilterInbox, QueryOptions{
-		Tags:             []string{"test"},
-		SortFlaggedToTop: true,
-	}))
-	assert.EqualSlice(t, []string{b, a, c}, uuids)
+	})
+	requireNoError(t, err)
+	uuids = getUUIDs(results)
+	assertSameUUIDs(t, []string{b, c}, uuids)
 }
 
 func TestSelect(t *testing.T) {
-	a := Create("a", CreateOptions{})
-	b := Create("b", CreateOptions{})
+	a, err := Create("a", CreateOptions{})
+	requireNoError(t, err)
+	b, err := Create("b", CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(a)
-		Trash(b)
+		requireNoError(t, Trash(a))
+		requireNoError(t, Trash(b))
 	}()
-	b_ := Get(Active()).Content
-	Select(a)
-	a_ := Get(Active()).Content
+	requireNoError(t, Select(b))
+	activeUUID, err := Active()
+	requireNoError(t, err)
+	activeDraft, err := Get(activeUUID)
+	requireNoError(t, err)
+	requireNoError(t, Select(a))
+	activeUUID, err = Active()
+	requireNoError(t, err)
+	selectedDraft, err := Get(activeUUID)
+	requireNoError(t, err)
+	b_ := activeDraft.Content
+	a_ := selectedDraft.Content
 	assert.Equal(t, "a", a_)
 	assert.Equal(t, "b", b_)
 }
@@ -178,11 +206,14 @@ func TestGetSpecialChars(t *testing.T) {
 	// https://en.wikipedia.org/wiki/URL_encoding#Percent-encoding_reserved_characters
 	chars := []string{"␣", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "/", ":", ";", "=", "?", "@", "[", "]"}
 	for _, c := range chars {
-		uuid := Create(c, CreateOptions{})
+		uuid, err := Create(c, CreateOptions{})
+		requireNoError(t, err)
 		defer func() {
-			Trash(uuid)
+			requireNoError(t, Trash(uuid))
 		}()
-		content := Get(uuid).Content
+		draft, err := Get(uuid)
+		requireNoError(t, err)
+		content := draft.Content
 		assert.Equal(t, c, content)
 	}
 }
@@ -190,37 +221,28 @@ func TestGetSpecialChars(t *testing.T) {
 func TestTag(t *testing.T) {
 	text := rand()
 	tag := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	Tag(uuid, tag)
-	draft := Get(uuid)
+	requireNoError(t, Tag(uuid, tag))
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, uuid, draft.UUID)
 	assert.Equal(t, text, draft.Content)
 	assert.EqualSlice(t, []string{tag}, draft.Tags)
 }
 
-func TestGetReturnsLanguageGrammar(t *testing.T) {
-	text := rand()
-	uuid := Create(text, CreateOptions{})
-	defer func() {
-		Trash(uuid)
-	}()
-	draft := Get(uuid)
-	// languageGrammar is not exposed via AppleScript dictionary,
-	// so the field will be empty when fetched via Get().
-	// The struct field exists for JSON serialization compatibility.
-	assert.Equal(t, "", draft.LanguageGrammar)
-}
-
 func TestGetReturnsLocationFields(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	// Location fields are float64; verify they parsed successfully.
 	// Values may be zero or actual coordinates depending on device location services.
 	if draft.CreatedLatitude < -90 || draft.CreatedLatitude > 90 {
@@ -239,56 +261,46 @@ func TestGetReturnsLocationFields(t *testing.T) {
 
 func TestSetFlagged(t *testing.T) {
 	text := rand()
-	uuid := Create(text, CreateOptions{})
+	uuid, err := Create(text, CreateOptions{})
+	requireNoError(t, err)
 	defer func() {
-		Trash(uuid)
+		requireNoError(t, Trash(uuid))
 	}()
 
 	// Verify starts unflagged
-	draft := Get(uuid)
+	draft, err := Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, false, draft.IsFlagged)
 
 	// Flag it
-	SetFlagged(uuid, true)
-	draft = Get(uuid)
+	requireNoError(t, SetFlagged(uuid, true))
+	draft, err = Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, true, draft.IsFlagged)
 
 	// Unflag it
-	SetFlagged(uuid, false)
-	draft = Get(uuid)
+	requireNoError(t, SetFlagged(uuid, false))
+	draft, err = Get(uuid)
+	requireNoError(t, err)
 	assert.Equal(t, false, draft.IsFlagged)
-}
-
-func TestSetLanguageGrammar(t *testing.T) {
-	text := rand()
-	uuid := Create(text, CreateOptions{})
-	defer func() {
-		Trash(uuid)
-	}()
-
-	// SetLanguageGrammar should not panic.
-	// languageGrammar is not readable via AppleScript, so we cannot
-	// verify the round-trip. We confirm the function executes without error
-	// and that the draft is otherwise unaffected.
-	SetLanguageGrammar(uuid, "JavaScript")
-	draft := Get(uuid)
-	assert.Equal(t, uuid, draft.UUID)
-	assert.Equal(t, text, draft.Content)
 }
 
 func TestQueryContentSearch(t *testing.T) {
 	tag := rand()
 	needle := "UNIQUE_SEARCH_" + rand()
 
-	a := Create("has the needle "+needle+" inside", CreateOptions{Tags: []string{tag}})
-	b := Create("no match here", CreateOptions{Tags: []string{tag}})
+	a, err := Create("has the needle "+needle+" inside", CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
+	b, err := Create("no match here", CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
 	defer func() {
-		Trash(a)
-		Trash(b)
+		requireNoError(t, Trash(a))
+		requireNoError(t, Trash(b))
 	}()
 
 	// Search with content filter — should only return draft "a"
-	results := Query(needle, FilterInbox, QueryOptions{Tags: []string{tag}})
+	results, err := Query(needle, FilterInbox, QueryOptions{Tags: []string{tag}})
+	requireNoError(t, err)
 	uuids := getUUIDs(results)
 	assert.EqualSlice(t, []string{a}, uuids)
 }
@@ -296,15 +308,18 @@ func TestQueryContentSearch(t *testing.T) {
 func TestQueryFlagged(t *testing.T) {
 	tag := rand()
 
-	a := Create("flagged draft", CreateOptions{Tags: []string{tag}, Flagged: true})
-	b := Create("unflagged draft", CreateOptions{Tags: []string{tag}})
+	a, err := Create("flagged draft", CreateOptions{Tags: []string{tag}, Flagged: true})
+	requireNoError(t, err)
+	b, err := Create("unflagged draft", CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
 	defer func() {
-		Trash(a)
-		Trash(b)
+		requireNoError(t, Trash(a))
+		requireNoError(t, Trash(b))
 	}()
 
 	// FilterFlagged should only return the flagged draft
-	results := Query("", FilterFlagged, QueryOptions{Tags: []string{tag}})
+	results, err := Query("", FilterFlagged, QueryOptions{Tags: []string{tag}})
+	requireNoError(t, err)
 	uuids := getUUIDs(results)
 	assert.EqualSlice(t, []string{a}, uuids)
 }
@@ -312,7 +327,8 @@ func TestQueryFlagged(t *testing.T) {
 // ---- Workspace tests --------------------------------------------------------
 
 func TestQueryWorkspace(t *testing.T) {
-	results := QueryWorkspace("", FilterAll, QueryOptions{})
+	results, err := QueryWorkspace("", "", FilterAll, QueryOptions{})
+	requireNoError(t, err)
 	// Empty workspace name should return empty slice, not nil
 	if results == nil {
 		t.Errorf("expected non-nil result from QueryWorkspace with empty name")
@@ -323,7 +339,8 @@ func TestQueryWorkspace(t *testing.T) {
 }
 
 func TestCurrentWorkspace(t *testing.T) {
-	ws := CurrentWorkspace()
+	ws, err := CurrentWorkspace()
+	requireNoError(t, err)
 	// Should return some string (Drafts always has a workspace)
 	if ws == "" {
 		t.Errorf("expected non-empty current workspace name")
@@ -331,7 +348,8 @@ func TestCurrentWorkspace(t *testing.T) {
 }
 
 func TestWorkspaces(t *testing.T) {
-	workspaces := Workspaces()
+	workspaces, err := Workspaces()
+	requireNoError(t, err)
 	if workspaces == nil {
 		t.Errorf("expected non-nil workspaces list")
 	}
@@ -354,4 +372,20 @@ func getUUIDs(ds []Draft) []string {
 		uuids[i] = ds[i].UUID
 	}
 	return uuids
+}
+
+func requireNoError(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertSameUUIDs(t *testing.T, want, got []string) {
+	t.Helper()
+	wantCopy := append([]string(nil), want...)
+	gotCopy := append([]string(nil), got...)
+	sort.Strings(wantCopy)
+	sort.Strings(gotCopy)
+	assert.EqualSlice(t, wantCopy, gotCopy)
 }

@@ -1,7 +1,7 @@
 ---
 name: drafts
-description: Manage Drafts app notes via CLI on macOS. Create, view, list, edit, append, prepend, flag, set syntax, manage workspaces, and run actions on drafts. Use when a user asks to create a note, list drafts, search drafts, flag/unflag drafts, or manage their Drafts inbox. IMPORTANT - Drafts app must be running on macOS for this to work.
-homepage: https://github.com/nerveband/drafts
+description: Manage Drafts app notes via CLI on macOS. Create, view, list, edit, append, prepend, flag/unflag, manage workspaces, inspect actions, and run actions on drafts. Supports raw JSON payloads on mutating commands. Use when a user asks to create a note, list drafts, search drafts, flag/unflag drafts, run Drafts actions, or manage their Drafts inbox. IMPORTANT - Drafts app must be running on macOS for this to work.
+homepage: https://github.com/nerveband/drafts-applescript-cli
 metadata: {"clawdbot":{"emoji":"📋","os":["darwin"],"requires":{"bins":["drafts"]}}}
 ---
 
@@ -23,13 +23,13 @@ If commands fail or hang, first check: `open -a Drafts`
 
 Install via Go:
 ```bash
-go install github.com/nerveband/drafts/cmd/drafts@latest
+go install github.com/nerveband/drafts-applescript-cli/cmd/drafts@latest
 ```
 
 Or build from source:
 ```bash
-git clone https://github.com/nerveband/drafts
-cd drafts && go build ./cmd/drafts
+git clone https://github.com/nerveband/drafts-applescript-cli
+cd drafts-applescript-cli && go build ./cmd/drafts
 ```
 
 ## Commands
@@ -48,6 +48,9 @@ drafts create "Urgent reminder" -f
 
 # Create in archive
 drafts create "Reference note" -a
+
+# Raw JSON payload
+drafts create --input '{"content":"Agent-safe input","tags":["ai","cli"]}'
 ```
 
 ### List Drafts
@@ -76,6 +79,12 @@ drafts list -w "My Workspace"
 
 # Combine filters
 drafts list -f inbox -t work -s "meeting"
+
+# Reduce response size (default is already 20)
+drafts list --limit 5
+
+# Include full content and coordinates
+drafts list --full -t work
 ```
 
 ### Get a Draft
@@ -119,16 +128,6 @@ drafts unflag <uuid>
 drafts unflag
 ```
 
-### Set Language Grammar / Syntax
-
-```bash
-# Set syntax highlighting for a draft
-drafts syntax "JavaScript" -u <uuid>
-
-# Set syntax on active draft
-drafts syntax "Markdown"
-```
-
 ### Workspaces
 
 ```bash
@@ -137,6 +136,19 @@ drafts workspace
 
 # List all workspaces
 drafts workspace --list
+
+# Open a workspace
+drafts workspace --open Ideas
+```
+
+### Actions
+
+```bash
+# List all actions
+drafts actions
+
+# Filter actions by substring
+drafts actions -s Copy
 ```
 
 ### Edit in Editor
@@ -153,6 +165,9 @@ drafts run "Copy" "Text to copy to clipboard"
 
 # Run action on existing draft
 drafts run "Copy" -u <uuid>
+
+# Raw JSON payload
+drafts run --input '{"action":"Copy","uuid":"<uuid>"}'
 ```
 
 ### Get Schema
@@ -199,7 +214,6 @@ drafts upgrade
     "isFlagged": false,
     "isArchived": false,
     "isTrashed": false,
-    "languageGrammar": "",
     "createdAt": "2026-01-29 10:00:00",
     "modifiedAt": "2026-01-29 10:30:00",
     "createdLatitude": 37.7749,
@@ -210,6 +224,8 @@ drafts upgrade
   }
 }
 ```
+
+For `drafts list`, the default JSON omits `content` and location fields unless you pass `--full`.
 
 **Plain text** - Human-readable output:
 ```bash
@@ -275,7 +291,7 @@ drafts list -w "Work Projects"
 - Requires Drafts Pro subscription
 - All UUIDs are Drafts-generated identifiers
 - Tags are case-sensitive
-- `languageGrammar` is write-only via AppleScript (always empty in Get output)
+- Drafts AppleScript does not expose syntax/language grammar, so this CLI does not surface a `syntax` command
 
 ## Version
 

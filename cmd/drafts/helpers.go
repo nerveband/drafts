@@ -1,71 +1,80 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/ernstwi/drafts/pkg/drafts"
+	"github.com/nerveband/drafts-applescript-cli/pkg/drafts"
 )
 
-func fatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func orStdin(text string) string {
+func readTextInput(text string) (string, error) {
 	if text != "" {
-		return text
+		return text, nil
 	}
 	stdin, err := io.ReadAll(os.Stdin)
-	fatal(err)
-	return strings.TrimSuffix(string(stdin), "\n")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(string(stdin), "\n"), nil
 }
 
-func orActive(uuid string) string {
+func resolveActiveUUID(uuid string) (string, error) {
 	if uuid != "" {
-		return uuid
+		return uuid, nil
 	}
 	return drafts.Active()
 }
 
 // Run FZF on input, return UUID.
-func fzfUUID(input string) string {
-	line := fzf(input)
-	return strings.Split(line, fmt.Sprintf(" %c ", drafts.Separator))[0]
+func fzfUUID(input string) (string, error) {
+	line, err := fzf(input)
+	if err != nil {
+		return "", err
+	}
+	return strings.Split(line, fmt.Sprintf(" %c ", drafts.Separator))[0], nil
 }
 
 // Run FZF on input, return line.
-func fzf(input string) string {
+func fzf(input string) (string, error) {
 	var result strings.Builder
 	cmd := exec.Command("fzf", "--delimiter", "\\|", "--with-nth", "2")
 	cmd.Stdout = &result
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = strings.NewReader(input)
 
-	err := cmd.Start()
-	fatal(err)
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
 
-	err = cmd.Wait()
-	fatal(err)
+	if err := cmd.Wait(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 130 {
+			return "", fmt.Errorf("selection cancelled")
+		}
+		return "", err
+	}
 
-	return strings.TrimSpace(result.String())
+	return strings.TrimSpace(result.String()), nil
 }
 
-func editor(input string) string {
+func editor(input string) (string, error) {
 	f, err := os.CreateTemp("", "")
-	fatal(err)
+	if err != nil {
+		return "", err
+	}
 	defer os.Remove(f.Name()) // clean up
 
-	_, err = f.Write([]byte(input))
-	fatal(err)
+	if _, err := f.Write([]byte(input)); err != nil {
+		return "", err
+	}
 
-	err = f.Close()
-	fatal(err)
+	if err := f.Close(); err != nil {
+		return "", err
+	}
 
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
@@ -77,11 +86,14 @@ func editor(input string) string {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
-	fatal(err)
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
 
 	data, err := os.ReadFile(f.Name())
-	fatal(err)
+	if err != nil {
+		return "", err
+	}
 
-	return strings.TrimSuffix(string(data), "\n")
+	return strings.TrimSuffix(string(data), "\n"), nil
 }

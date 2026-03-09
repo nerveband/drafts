@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" aria-labelledby="title desc">
+  <title id="title">Drafts AppleScript CLI overview</title>
+  <desc id="desc">A technical hero illustration for the Drafts AppleScript CLI showing structured JSON input and output, schema discovery, actions, workspace open, and AppleScript-backed automation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#172033" />
+      <stop offset="100%" stop-color="#0b1220" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#7dd3fc" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.42" />
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)" />
+
+  <g stroke="#314158" stroke-width="1" opacity="0.22">
+    <path d="M0 100H1600M0 200H1600M0 300H1600M0 400H1600M0 500H1600M0 600H1600M0 700H1600M0 800H1600" />
+    <path d="M100 0V900M200 0V900M300 0V900M400 0V900M500 0V900M600 0V900M700 0V900M800 0V900M900 0V900M1000 0V900M1100 0V900M1200 0V900M1300 0V900M1400 0V900M1500 0V900" />
+  </g>
+
+  <g transform="translate(96 110)">
+    <rect x="0" y="0" width="124" height="10" rx="5" fill="url(#accent)" />
+    <text x="0" y="62" font-family="monospace" font-size="50" font-weight="700" fill="#f8fafc">Drafts AppleScript CLI</text>
+    <text x="0" y="104" font-family="monospace" font-size="24" fill="#94a3b8">Structured I/O, live schema discovery, and Drafts automation on macOS</text>
+  </g>
+
+  <g transform="translate(96 250)" filter="url(#shadow)">
+    <rect x="0" y="0" width="938" height="520" rx="18" fill="url(#panel)" stroke="#32445b" stroke-width="2" />
+    <path d="M0 18C0 8.059 8.059 0 18 0H920C929.941 0 938 8.059 938 18V52H0V18Z" fill="#0b1220" />
+    <circle cx="28" cy="26" r="6" fill="#ef4444" />
+    <circle cx="48" cy="26" r="6" fill="#f59e0b" />
+    <circle cx="68" cy="26" r="6" fill="#22c55e" />
+    <text x="469" y="32" font-family="monospace" font-size="14" fill="#64748b" text-anchor="middle">terminal / drafts</text>
+
+    <g transform="translate(32 88)" font-family="monospace" font-size="18">
+      <text x="0" y="0" fill="#60a5fa">$</text>
+      <text x="18" y="0" fill="#f8fafc">drafts create</text>
+      <text x="164" y="0" fill="#22c55e">--input</text>
+      <text x="250" y="0" fill="#7dd3fc">JSON</text>
+
+      <rect x="18" y="26" width="454" height="176" rx="10" fill="#0b1220" stroke="#283548" stroke-width="1" />
+      <text x="42" y="58" fill="#cbd5e1">{</text>
+      <text x="66" y="88" fill="#93c5fd">"content"</text>
+      <text x="176" y="88" fill="#cbd5e1">:</text>
+      <text x="198" y="88" fill="#a7f3d0">"Meeting notes"</text>
+      <text x="370" y="88" fill="#cbd5e1">,</text>
+      <text x="66" y="118" fill="#93c5fd">"tags"</text>
+      <text x="146" y="118" fill="#cbd5e1">:</text>
+      <text x="166" y="118" fill="#cbd5e1">[</text>
+      <text x="182" y="118" fill="#a7f3d0">"work"</text>
+      <text x="252" y="118" fill="#cbd5e1">,</text>
+      <text x="270" y="118" fill="#a7f3d0">"urgent"</text>
+      <text x="360" y="118" fill="#cbd5e1">]</text>
+      <text x="66" y="148" fill="#93c5fd">"folder"</text>
+      <text x="162" y="148" fill="#cbd5e1">:</text>
+      <text x="182" y="148" fill="#a7f3d0">"inbox"</text>
+      <text x="42" y="178" fill="#cbd5e1">}</text>
+
+      <text x="18" y="238" fill="#60a5fa">$</text>
+      <text x="38" y="238" fill="#f8fafc">drafts get 000057DD-2C19</text>
+
+      <rect x="18" y="264" width="540" height="172" rx="10" fill="#0b1220" stroke="#283548" stroke-width="1" />
+      <text x="42" y="296" fill="#cbd5e1">{</text>
+      <text x="66" y="326" fill="#93c5fd">"success"</text>
+      <text x="162" y="326" fill="#cbd5e1">:</text>
+      <text x="184" y="326" fill="#fde68a">true</text>
+      <text x="238" y="326" fill="#cbd5e1">,</text>
+      <text x="66" y="356" fill="#93c5fd">"data"</text>
+      <text x="132" y="356" fill="#cbd5e1">:</text>
+      <text x="154" y="356" fill="#cbd5e1">{</text>
+      <text x="188" y="356" fill="#93c5fd">"uuid"</text>
+      <text x="258" y="356" fill="#cbd5e1">:</text>
+      <text x="278" y="356" fill="#a7f3d0">"000057DD-2C19..."</text>
+      <text x="188" y="386" fill="#93c5fd">"folder"</text>
+      <text x="274" y="386" fill="#cbd5e1">:</text>
+      <text x="294" y="386" fill="#a7f3d0">"inbox"</text>
+      <text x="188" y="416" fill="#93c5fd">"permalink"</text>
+      <text x="306" y="416" fill="#cbd5e1">:</text>
+      <text x="326" y="416" fill="#a7f3d0">"drafts://open?uuid=..."</text>
+      <text x="42" y="446" fill="#cbd5e1">}</text>
+      <text x="60" y="446" fill="#cbd5e1">}</text>
+    </g>
+  </g>
+
+  <g transform="translate(1070 250)" filter="url(#shadow)">
+    <rect x="0" y="0" width="434" height="520" rx="18" fill="#0b1220" stroke="#3b82f6" stroke-width="2" />
+    <path d="M0 18C0 8.059 8.059 0 18 0H416C425.941 0 434 8.059 434 18V58H0V18Z" fill="#162133" />
+    <text x="36" y="36" font-family="monospace" font-size="16" fill="#7dd3fc">drafts schema</text>
+    <text x="300" y="36" font-family="monospace" font-size="14" fill="#64748b">live contract</text>
+
+    <g transform="translate(28 92)" font-family="monospace" font-size="15">
+      <rect x="0" y="0" width="378" height="116" rx="10" fill="#121b2b" stroke="#334155" stroke-width="1" />
+      <text x="20" y="30" fill="#f8fafc">drafts_new</text>
+      <text x="20" y="58" fill="#60a5fa">content</text>
+      <text x="112" y="58" fill="#94a3b8">string required</text>
+      <text x="20" y="84" fill="#60a5fa">tags</text>
+      <text x="78" y="84" fill="#94a3b8">array</text>
+      <text x="176" y="84" fill="#60a5fa">folder</text>
+      <text x="252" y="84" fill="#94a3b8">inbox | archive</text>
+
+      <rect x="0" y="140" width="378" height="106" rx="10" fill="#121b2b" stroke="#334155" stroke-width="1" />
+      <text x="20" y="170" fill="#f8fafc">actions</text>
+      <text x="20" y="198" fill="#fbbf24">search</text>
+      <text x="92" y="198" fill="#94a3b8">substring filter</text>
+      <text x="20" y="224" fill="#f8fafc">workspace --open</text>
+      <text x="186" y="224" fill="#94a3b8">open: string</text>
+
+      <rect x="0" y="278" width="378" height="126" rx="10" fill="#121b2b" stroke="#334155" stroke-width="1" />
+      <text x="20" y="308" fill="#f8fafc">Agent-friendly defaults</text>
+      <text x="20" y="336" fill="#22c55e">list</text>
+      <text x="64" y="336" fill="#94a3b8">summary output first</text>
+      <text x="20" y="362" fill="#22c55e">--full</text>
+      <text x="92" y="362" fill="#94a3b8">full content only when needed</text>
+      <text x="20" y="388" fill="#22c55e">AppleScript</text>
+      <text x="128" y="388" fill="#94a3b8">live Drafts.app backend</text>
+    </g>
+  </g>
+
+  <g transform="translate(104 806)" font-family="monospace" font-size="16">
+    <rect x="0" y="0" width="180" height="38" rx="19" fill="#111827" stroke="#2563eb" stroke-width="1" />
+    <text x="28" y="24" fill="#93c5fd">actions</text>
+    <rect x="198" y="0" width="286" height="38" rx="19" fill="#111827" stroke="#2563eb" stroke-width="1" />
+    <text x="226" y="24" fill="#93c5fd">workspace --open</text>
+    <rect x="500" y="0" width="210" height="38" rx="19" fill="#111827" stroke="#2563eb" stroke-width="1" />
+    <text x="528" y="24" fill="#93c5fd">AppleScript</text>
+    <rect x="726" y="0" width="226" height="38" rx="19" fill="#111827" stroke="#2563eb" stroke-width="1" />
+    <text x="754" y="24" fill="#93c5fd">drafts schema</text>
+  </g>
+
+  <rect x="96" y="860" width="1408" height="4" rx="2" fill="url(#accent)" opacity="0.7" />
+</svg>
