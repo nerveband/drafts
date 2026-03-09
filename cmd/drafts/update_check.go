@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/creativeprojects/go-selfupdate"
+	goversion "github.com/hashicorp/go-version"
 )
 
 // UpdateCache stores the last update check result
@@ -73,7 +75,7 @@ func checkForUpdates() (hasUpdate bool, latestVersion string, err error) {
 	// Try to load from cache first
 	cache, err := loadUpdateCache()
 	if err == nil && time.Since(cache.LastCheck) < updateCheckInterval {
-		return cache.UpdateRequired, cache.LatestVersion, nil
+		return isNewerVersion(cache.LatestVersion, version), cache.LatestVersion, nil
 	}
 
 	// Cache expired or doesn't exist, check GitHub
@@ -105,7 +107,7 @@ func checkForUpdates() (hasUpdate bool, latestVersion string, err error) {
 	}
 
 	latestVersion = latest.Version()
-	hasUpdate = !latest.LessOrEqual(version)
+	hasUpdate = isNewerVersion(latestVersion, version)
 
 	// Save to cache
 	newCache := &UpdateCache{
@@ -116,6 +118,20 @@ func checkForUpdates() (hasUpdate bool, latestVersion string, err error) {
 	saveUpdateCache(newCache)
 
 	return hasUpdate, latestVersion, nil
+}
+
+func isNewerVersion(latestVersion, currentVersion string) bool {
+	latest, err := goversion.NewVersion(strings.TrimPrefix(latestVersion, "v"))
+	if err != nil {
+		return latestVersion != currentVersion
+	}
+
+	current, err := goversion.NewVersion(strings.TrimPrefix(currentVersion, "v"))
+	if err != nil {
+		return latestVersion != currentVersion
+	}
+
+	return latest.GreaterThan(current)
 }
 
 // checkAndNotifyUpdate checks for updates and prints a notification if available

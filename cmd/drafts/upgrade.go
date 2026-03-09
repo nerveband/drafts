@@ -13,7 +13,7 @@ const repoOwner = "nerveband"
 const repoName = "drafts-applescript-cli"
 
 // version is set at build time via ldflags
-var version = "3.0.1"
+var version = "3.0.2"
 
 type UpgradeResult struct {
 	Message         string `json:"message"`
@@ -55,7 +55,7 @@ func runUpgrade() interface{} {
 	}
 
 	// Compare versions
-	if latest.LessOrEqual(version) {
+	if !isNewerVersion(latest.Version(), version) {
 		return UpgradeResult{
 			Message:         "Already up to date",
 			PreviousVersion: version,
