@@ -324,6 +324,38 @@ func TestQueryFlagged(t *testing.T) {
 	assert.EqualSlice(t, []string{a}, uuids)
 }
 
+func TestQueryMultilineContent(t *testing.T) {
+	tag := rand()
+	multiline := "Line one\nLine two\nLine three"
+
+	a, err := Create(multiline, CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
+	b, err := Create("single line", CreateOptions{Tags: []string{tag}})
+	requireNoError(t, err)
+	defer func() {
+		requireNoError(t, Trash(a))
+		requireNoError(t, Trash(b))
+	}()
+
+	// Get confirms the multiline draft exists
+	draft, err := Get(a)
+	requireNoError(t, err)
+	assert.Equal(t, multiline, draft.Content)
+
+	// Query must also find it
+	results, err := Query("", FilterInbox, QueryOptions{Tags: []string{tag}})
+	requireNoError(t, err)
+	uuids := getUUIDs(results)
+	assertSameUUIDs(t, []string{a, b}, uuids)
+
+	// Verify the multiline draft's content is intact after round-tripping through Query
+	for _, d := range results {
+		if d.UUID == a {
+			assert.Equal(t, multiline, d.Content)
+		}
+	}
+}
+
 // ---- Workspace tests --------------------------------------------------------
 
 func TestQueryWorkspace(t *testing.T) {

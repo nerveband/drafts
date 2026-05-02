@@ -6,6 +6,7 @@ import (
 )
 
 const tagSeparator = "|||"
+const recordSeparator = "\x1e"
 
 type ActionRunResult struct {
 	UUID         string `json:"uuid"`
@@ -333,7 +334,7 @@ func queryDrafts(scope, queryString string, filter Filter, opt QueryOptions) ([]
 		if output is "" then
 			set output to line_out
 		else
-			set output to output & linefeed & line_out
+			set output to output & (ASCII character 30) & line_out
 		end if
 	end repeat
 	return output
@@ -348,7 +349,7 @@ end tell`, scope, whereClause)
 		return []Draft{}, nil
 	}
 
-	lines := strings.Split(output, "\n")
+	lines := strings.Split(output, recordSeparator)
 	drafts := make([]Draft, 0, len(lines))
 	for _, line := range lines {
 		if line != "" {
